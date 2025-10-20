@@ -1,0 +1,50 @@
+.active-call-card {
+    background-color: var(--surface-color);
+    padding: 0 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--primary-color);
+}
+
+.card-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.live-indicator {
+    color: var(--danger-color);
+    font-size: 1.5rem;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+.room-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-title {
+    font-size: 0.8rem;
+    color: var(--text-color-secondary);
+    font-weight: 500;
+}
+
+.room-name {
+    font-size: 1.1rem;
+    color: var(--text-color-primary);
+    font-weight: 600;
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.5rem;
+}

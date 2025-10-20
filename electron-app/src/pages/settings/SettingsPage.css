@@ -1,0 +1,5 @@
+.settings-page-layout {
+  padding: 0;
+  height: 100%;
+  overflow-y: auto; /* Add scroll for content that might overflow */
+}

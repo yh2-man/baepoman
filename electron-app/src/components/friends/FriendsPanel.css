@@ -1,0 +1,46 @@
+.friends-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--surface-color);
+    border-right: 1px solid var(--background-tertiary, #333);
+    width: 280px; /* 패널 너비 고정 */
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+.my-profile-section {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--background-tertiary, #333);
+}
+
+.friends-list-section {
+    flex: 1; /* 남은 공간 모두 차지 */
+    display: flex;
+    flex-direction: column;
+    overflow-y: hidden; /* 스크롤은 내부 리스트에서 */
+    margin-top: 12px;
+}
+
+.friends-list-header h4 {
+    margin: 0 0 8px 0;
+    color: var(--text-secondary-color);
+}
+
+.friends-list {
+    flex: 1;
+    overflow-y: auto; /* 친구가 많아지면 스크롤 */
+}
+
+.add-friend-section {
+    position: relative;
+    padding-top: 12px;
+    border-top: 1px solid var(--background-tertiary, #333);
+}
+
+.no-friends-placeholder {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-color-secondary);
+    font-size: 0.9rem;
+}

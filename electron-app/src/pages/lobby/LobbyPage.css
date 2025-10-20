@@ -1,0 +1,63 @@
+.lobby-page-main {
+    flex: 1; /* FriendsPanel을 제외한 나머지 공간 모두 차지 */
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: hidden; /* 스크롤은 room-list-container에서 */
+}
+
+.lobby-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.lobby-page-header h2 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.room-filters {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%; /* Ensure the container takes full width */
+}
+
+.category-filter-wrapper {
+    width: 250px;
+}
+
+.room-list-container {
+    flex: 1;
+    overflow-y: auto; /* 방 목록이 많아지면 스크롤 */
+}
+
+.loading-indicator {
+    margin-top: 50px;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.room-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--card-width, 280px), 1fr));
+    gap: 20px;
+}
+
+.room-name-filter-wrapper {
+    flex: 1;
+    min-width: 180px;
+}
+
+/* Override background for filter inputs */
+.room-filters .room-name-filter-wrapper input,
+.room-filters .category-filter-wrapper input {
+  background-color: var(--surface-color);
+}
+
+.create-room-button {
+  margin-left: auto; /* Push the button to the far right */
+  flex-shrink: 0; /* Prevent the button from shrinking */
+}

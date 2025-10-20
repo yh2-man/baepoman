@@ -1,0 +1,125 @@
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background-color: var(--surface-color);
+    padding: 24px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  }
+  
+  .modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: var(--header-primary);
+  }
+  
+margin-bottom: 8px;
+    position: relative; /* For positioning the category panel */
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  
+  .form-group input[type="number"] {
+    width: 100%;
+    padding: 10px; /* Match Input component */
+    border-radius: var(--border-radius); /* Match Input component */
+    border: 1px solid var(--surface-color); /* Match Input component */
+    background-color: var(--background-color); /* Match Input component */
+    color: var(--text-color); /* Match Input component */
+    font-size: 1rem; /* Match Input component */
+    box-sizing: border-box; /* Match Input component */
+  }
+  
+  .modal-actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+/* New Category Selector Styles */
+.category-select-display {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--background-tertiary);
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none; /* Prevent text selection */
+}
+
+.category-select-arrow {
+  font-size: 0.8em;
+}
+
+.category-selector-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--surface-color-secondary, var(--surface-color)); /* Use a slightly different bg if defined */
+  border: 1px solid var(--background-tertiary);
+  border-radius: 4px;
+  margin-top: 4px;
+  z-index: 1010;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  padding: 8px;
+}
+
+.category-search-input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--background-tertiary);
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 150px; /* Limit height and make scrollable */
+  overflow-y: auto;
+}
+
+.category-list li {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.category-list li:hover {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-primary);
+}
+
+.category-list .no-results {
+  color: var(--text-muted);
+  padding: 8px 12px;
+  cursor: default;
+}

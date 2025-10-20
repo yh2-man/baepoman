@@ -1,0 +1,161 @@
+.room-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Take up remaining space in AppLayout's main content */
+  height: 100%; /* Ensure it fills the height of its parent */
+  overflow: hidden; /* Prevent room content from scrolling */
+}
+
+.main-panel {
+  flex: 2; /* Give more space to the call area */
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-bottom: 1px solid var(--background-tertiary); /* Separator between call and chat */
+  align-items: center; /* Center content horizontally */
+}
+
+.side-panel {
+  flex: 1; /* Give less space to the chat area */
+  /* width: 320px; Removed fixed width */
+  /* border-left: 1px solid var(--background-tertiary); Removed border-left */
+  display: flex;
+  flex-direction: column;
+}
+
+.room-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--background-tertiary);
+  flex-shrink: 0;
+}
+
+.room-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--header-primary);
+}
+
+.room-header p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+}
+
+.room-main-content {
+  flex: 1; /* Take up remaining space */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Hide overflow if content exceeds this area */
+}
+
+.participants-grid {
+  display: flex; /* Changed from grid to flex */
+  flex-wrap: wrap; /* Allow items to wrap */
+  justify-content: center; /* Center items horizontally */
+  gap: 16px;
+  padding: 5px 0; /* 5px top/bottom padding */
+  flex-grow: 0; /* Allow to grow based on content */
+  flex-shrink: 0; /* Prevent shrinking */
+  /* Removed grid-template-columns, justify-items, align-items, width: fit-content */
+}
+
+.participant-card {
+  /* background-color: var(--surface-color); Removed */
+  /* border-radius: 8px; Removed */
+  /* padding: 16px; Removed */
+  display: flex; /* Use flexbox for vertical arrangement */
+  flex-direction: column; /* Stack items vertically */
+  align-items: center; /* Center items horizontally */
+  justify-content: center; /* Center items vertically */
+  min-height: 120px; /* Keep min-height or adjust as needed */
+  gap: 8px; /* Space between avatar and name */
+}
+
+.profile-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%; /* Make it a circle */
+  background-color: var(--surface-color); /* A neutral background */
+  overflow: hidden; /* Ensure content within is clipped to circle */
+  display: flex; /* Keep flex properties to center placeholder */
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-color-inverted);
+  background-color: var(--primary-color);
+}
+
+.username-display {
+  color: var(--text-color);
+  font-size: 1rem;
+  text-align: center;
+  word-break: break-word; /* Allow long names to wrap */
+}
+
+.room-controls {
+  padding: 16px;
+  border-top: 1px solid var(--background-tertiary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.room-controls button {
+  padding: 8px 16px;
+  border-radius: 4px;\n  border: none;
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.room-controls .leave-button {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.call-controls-bar {
+  height: 40px; /* Example height for the controls */
+  border-top: 1px solid var(--background-tertiary); /* Thin line separator */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0; /* Prevent it from shrinking */
+}
+
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background-color: var(--surface-color);
+}
+
+.chat-panel h2 {
+  margin: 0 0 16px 0;
+  font-size: 1.2rem;
+  border-bottom: 1px solid var(--background-tertiary);
+  padding-bottom: 16px;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+

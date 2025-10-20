@@ -1,0 +1,31 @@
+:root {
+  --primary-color: #4CAF50; /* 초록색 */
+  --primary-hover-color: #45a049;
+  --primary-color-dark: #388e3c; /* 어두운 초록색 */
+  --background-color: #36393f; /* 조금 더 밝은 어두운 회색 */
+  --surface-color: #40444b; /* 카드 배경색 (조금 더 밝은 회색) */
+  --background-tertiary: #2f3136; /* 더 어두운 회색 */
+  --text-color: #ffffff; /* 흰색 텍스트 */
+  --text-secondary-color: #b9bbbe; /* 연한 회색 텍스트 */
+  --error-color: #f44336; /* 오류 메시지 색상 */
+  --success-color: #4CAF50; /* 성공 메시지 색상 (기존 primary-color와 동일) */
+  --warning-color: #ff9800; /* 경고 메시지 색상 */
+  --info-color: #2196F3;    /* 정보 메시지 색상 */
+
+  --border-radius: 8px;
+}
+
+/* Custom Scrollbar Styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--background-tertiary);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--primary-color-dark);
+  border-radius: 10px;
+}

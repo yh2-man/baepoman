@@ -1,0 +1,7 @@
+/* GlobalAudioStreams component is meant to be invisible. */
+/* Its purpose is to render audio elements for playback. */
+/* No visual styles are typically needed here. */
+/* If you need to debug, you can temporarily add a border or background. */
+.global-audio-streams-container {
+    display: none; /* Hide the container */
+}

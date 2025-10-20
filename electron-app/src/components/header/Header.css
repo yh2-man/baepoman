@@ -1,0 +1,57 @@
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    height: 60px;
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    border-bottom: 1px solid var(--background-tertiary, #333);
+  }
+  
+  .header-section {
+    display: flex;
+    align-items: center;
+  }
+  
+  .header-left {
+    justify-content: flex-start;
+  }
+  
+  .header-center {
+    flex: 1; /* 남는 공간을 모두 차지하도록 설정 */
+    justify-content: center;
+  }
+  
+  .header-right {
+    justify-content: flex-end;
+  }
+  
+  .header-logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .header-ad-space {
+    border: 1px dashed var(--text-secondary-color);
+    padding: 4px 16px;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+  }
+  
+  .settings-icon {
+    font-size: 1.8rem; /* 아이콘 크기 */
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+  }
+
+  .settings-icon:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }

@@ -1,0 +1,43 @@
+.add-friend-popover {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  width: auto;
+  margin-bottom: 8px;
+  z-index: 1000;
+
+  /* 기본 상태: 완전히 숨김 */
+  display: none;
+
+  background-color: var(--surface-color);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  box-sizing: border-box;
+}
+
+.add-friend-popover.visible {
+  /* 보이는 상태 */
+  display: block;
+}
+
+.add-friend-popover h2 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 1.2rem;
+}
+
+.add-friend-popover p {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: var(--text-secondary-color);
+}
+
+.modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

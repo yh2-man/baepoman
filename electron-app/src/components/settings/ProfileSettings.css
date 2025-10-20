@@ -1,0 +1,49 @@
+.profile-settings-container {
+    padding: 1.5rem;
+}
+
+.profile-settings-container h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color-primary);
+}
+
+.form-section {
+    margin-bottom: 2rem;
+}
+
+.profile-picture-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.profile-picture-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: var(--background-color-tertiary);
+    object-fit: cover;
+    border: 2px solid var(--border-color);
+}
+
+.profile-picture-actions label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-color-secondary);
+    font-size: 0.9rem;
+}
+
+.password-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.save-button-container {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: flex-end;
+}
