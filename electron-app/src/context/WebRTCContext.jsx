@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { Connection } from '../core/Connection.js';
+import { useAudioProcessor } from '../hooks/useAudioProcessor'; // Import the new hook
 import PropTypes from 'prop-types';
 
 const WebRTCContext = createContext(null);
@@ -13,24 +14,21 @@ const ICE_SERVERS = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        {
-            urls: 'turn:openrelay.metered.ca:80',
-            username: 'openrelayproject',
-            credential: 'openrelayproject',
-        },
     ],
 };
 
 export function WebRTCProvider({ children }) {
     const { user, sendMessage, addMessageListener, removeMessageListener, setCurrentRoom } = useAuth();
+    const { startProcessing, stopProcessing, processedStream } = useAudioProcessor(); // Use the hook
+
+    // localStream is now the processedStream from our hook
+    const localStream = processedStream;
     
-    const [localStream, setLocalStream] = useState(null);
     const [remoteStreams, setRemoteStreams] = useState({});
     const peerConnections = useRef({});
     const [isHost, setIsHost] = useState(false);
     const [roomId, setRoomId] = useState(null);
 
-    // Use refs to hold state values for use in callbacks without re-triggering effects
     const isHostRef = useRef(isHost);
     const localStreamRef = useRef(localStream);
 
@@ -54,15 +52,14 @@ export function WebRTCProvider({ children }) {
             delete peerConnections.current[userId];
         }
         removeRemoteStream(userId);
-    }, [removeRemoteStream]);    
+    }, [removeRemoteStream]);
 
     const handleNewPeer = useCallback((payload) => {
         const remoteUserId = payload.user.id;
         if (remoteUserId === user.id || !isHostRef.current || !localStreamRef.current) return;
 
-        if (peerConnections.current[remoteUserId]) {
-            return;
-        }
+        if (peerConnections.current[remoteUserId]) return;
+        
         const conn = new Connection(user.id, remoteUserId, sendMessage, ICE_SERVERS);
         peerConnections.current[remoteUserId] = conn;
         
@@ -79,13 +76,10 @@ export function WebRTCProvider({ children }) {
 
     const handleOffer = useCallback(async (payload) => {
         const remoteUserId = payload.senderId;
-        if (isHostRef.current || !localStreamRef.current) {
-            return;
-        }
+        if (isHostRef.current || !localStreamRef.current) return;
 
-        if (peerConnections.current[remoteUserId]) {
-            return;
-        }
+        if (peerConnections.current[remoteUserId]) return;
+
         const conn = new Connection(user.id, remoteUserId, sendMessage, ICE_SERVERS);
         peerConnections.current[remoteUserId] = conn;
 
@@ -101,15 +95,10 @@ export function WebRTCProvider({ children }) {
     }, [user, sendMessage, addRemoteStream]);
 
     const handleHostChanged = useCallback((payload) => {
-        console.log(`[DEBUG] Host changed to: ${payload.newHostId}`);
-        // Clean up all existing peer connections
         Object.keys(peerConnections.current).forEach(userId => cleanupConnection(userId));
-        // Update host status
         setIsHost(payload.newHostId === user.id);
-        // The server will re-send 'user-joined' messages to trigger new connections
     }, [user, cleanupConnection]);
 
-    // Main signaling and WebRTC setup effect
     useEffect(() => {
         if (!user) return;
 
@@ -152,32 +141,40 @@ export function WebRTCProvider({ children }) {
         };
     }, [user, sendMessage, cleanupConnection, addRemoteStream, setCurrentRoom, handleNewPeer, handleOffer, handleHostChanged]);
 
-    const leaveRoom = useCallback(() => {
+    const leaveRoom = useCallback(async () => {
         if (!roomId || !user) return;
         sendMessage({ type: 'leave-room', payload: { roomId, userId: user.id } });
         Object.keys(peerConnections.current).forEach(userId => cleanupConnection(userId));
-        localStream?.getTracks().forEach(track => track.stop());
-        setLocalStream(null);
+        
+        // Stop the audio processor, which handles all stream and context cleanup
+        await stopProcessing();
+
         setRoomId(null);
         setIsHost(false);
         setCurrentRoom(null);
-    }, [roomId, user, localStream, sendMessage, cleanupConnection, setCurrentRoom]);
+    }, [roomId, user, sendMessage, cleanupConnection, setCurrentRoom, stopProcessing]);
 
     const joinRoom = useCallback(async (newRoomId) => {
         if (!user) return;
-        if (roomId && roomId !== newRoomId) leaveRoom();
+        if (roomId && roomId !== newRoomId) await leaveRoom();
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
+            // 1. Get raw audio stream from microphone
+            const rawMicStream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
             });
-            setLocalStream(stream);
+
+            // 2. Start processing and get the clean stream
+            await startProcessing(rawMicStream);
+
+            // 3. Join the room
             setRoomId(newRoomId);
             sendMessage({ type: 'join-room', payload: { roomId: newRoomId, userId: user.id } });
+
         } catch (error) {
-            console.error('Error getting user media:', error);
+            console.error('Error joining room:', error);
         }
-    }, [user, roomId, leaveRoom, sendMessage]);
+    }, [user, roomId, leaveRoom, sendMessage, startProcessing]);
 
     const setLocalAudioMuted = useCallback((muted) => {
         Object.values(peerConnections.current).forEach(conn => {
@@ -193,3 +190,7 @@ export function WebRTCProvider({ children }) {
         </WebRTCContext.Provider>
     );
 }
+
+WebRTCProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};

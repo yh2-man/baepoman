@@ -1,19 +1,29 @@
 require('dotenv').config();
-
+const http = require('http');
 const initDb = require('./src/db/initDb.js');
-const startSignaling = require('./src/signaling-server.js');
+const app = require('./src/app.js'); // Express app
+const webSocketServer = require('./src/WebSocketServer.js'); // WebSocket server logic
+
+const PORT = process.env.PORT || 3001;
 
 async function startServer() {
     try {
+        // 1. Initialize Database
         console.log('Starting database initialization...');
         await initDb();
         console.log('Database successfully prepared.');
 
-        console.log('Starting servers...');
+        // 2. Create HTTP Server using Express app
+        const server = http.createServer(app);
 
-        startSignaling();
+        // 3. Start WebSocket Server and attach it to the HTTP server
+        webSocketServer.start(server);
 
-        console.log('All servers started successfully.');
+        // 4. Start Listening
+        server.listen(PORT, () => {
+            console.log(`HTTP and Signaling server running on port ${PORT}.`);
+        });
+
     } catch (err) {
         console.error('Error starting server:', err);
         process.exit(1);

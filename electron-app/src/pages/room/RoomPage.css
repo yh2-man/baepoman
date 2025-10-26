@@ -106,6 +106,16 @@
   word-break: break-word; /* Allow long names to wrap */
 }
 
+/* Voice Activity Indicator */
+.participant-card .profile-avatar {
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.participant-card.speaking .profile-avatar {
+  box-shadow: 0 0 8px 3px var(--success-color);
+}
+
+
 .room-controls {
   padding: 16px;
   border-top: 1px solid var(--background-tertiary);
