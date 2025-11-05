@@ -61,9 +61,6 @@ const useVoiceActivity = ({ stream, threshold = 20, interval = 100 }) => {
             cancelAnimationFrame(animationFrameRef.current);
             clearTimeout(speakingTimeoutRef.current); // Clear timeout on cleanup
             source.disconnect();
-            if (audioContext.state !== 'closed') {
-                audioContext.close();
-            }
         };
     }, [stream, threshold, interval]);
 

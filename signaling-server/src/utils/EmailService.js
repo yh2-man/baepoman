@@ -16,7 +16,7 @@ export const sendVerificationEmail = async (to, code) => {
     }
 
     const mailOptions = {
-        from: process.env.EMAIL_USER, // Simplified from address
+        from: `"OurChat" <${process.env.EMAIL_USER}>`, // Changed from address
         to: to,
         subject: 'OurChat 인증코드',
         html: `

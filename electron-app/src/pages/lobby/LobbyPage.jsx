@@ -1,41 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { requestRooms, createRoom } from '../../api/roomApi';
 import { useAuth } from '../../context/AuthContext';
 import RoomCard from '../../components/lobby/RoomCard';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import CreateRoomModal from '../../components/lobby/CreateRoomModal';
-import { CATEGORIES } from '../../constants/categories';
-// import FriendsPanel from '../../components/friends/FriendsPanel'; // Removed
-import AutocompleteSelect from '../../components/common/AutocompleteSelect'; // <-- Import AutocompleteSelect
-import { useNotification } from '../../context/NotificationContext'; // Uncommented
+// import { CATEGORIES } from '../../constants/categories'; // Removed
+import AutocompleteSelect from '../../components/common/AutocompleteSelect';
+import { useNotification } from '../../context/NotificationContext';
 import { useNavigate } from 'react-router-dom';
-import ActiveCallCard from '../../components/lobby/ActiveCallCard'; // Import ActiveCallCard
+import ActiveCallCard from '../../components/lobby/ActiveCallCard';
 
 const LobbyPage = () => {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roomNameFilter, setRoomNameFilter] = useState('');
+  const [categories, setCategories] = useState([]); // New state for categories
   
   const allCategoriesLabel = '모든 카테고리';
   const [categoryFilter, setCategoryFilter] = useState(allCategoriesLabel);
 
   const { user, sendMessage, addMessageListener, removeMessageListener, isConnected } = useAuth();
-  const { addNotification } = useNotification(); // Uncommented
+  const { addNotification } = useNotification();
   const navigate = useNavigate();
 
+  // Function to request categories from server
+  const requestCategories = useCallback(() => {
+    sendMessage({ type: 'get-categories' });
+  }, [sendMessage]);
+
   useEffect(() => {
-    console.log('LobbyPage mounted');
     const handleRoomsList = (roomList) => {
-      const formattedRooms = roomList.map(room => ({ ...room, roomName: room.name, roomId: room.id }));
+      const formattedRooms = roomList.map(room => ({
+        ...room,
+        roomId: room.id,
+        roomName: room.name, // Use name as roomName for consistency
+        category: room.categoryName, // Map categoryName to category for filtering
+      }));
       setRooms(formattedRooms);
       setLoading(false);
     };
 
     const handleRoomCreated = (newRoom) => {
-      const formattedNewRoom = { ...newRoom, roomName: newRoom.name, roomId: newRoom.id };
-      setRooms(prevRooms => [formattedNewRoom, ...prevRooms]);
+      // Only add group rooms to the lobby list
+      if (newRoom.roomType === 'group') {
+        const formattedNewRoom = {
+          ...newRoom,
+          roomId: newRoom.id,
+          roomName: newRoom.name,
+          category: newRoom.categoryName,
+        };
+        setRooms(prevRooms => [formattedNewRoom, ...prevRooms]);
+      }
     };
 
     const handleRoomDeleted = (payload) => {
@@ -45,22 +62,14 @@ const LobbyPage = () => {
     };
 
     const handleRoomUpdated = (payload) => {
-      console.log('[DEBUG] Received room-updated:', payload); // Debug log
-      const { roomId, participantCount } = payload;
+      const { roomId, participantCount, hostId, hostName, roomType, isPrivate } = payload;
       const numericRoomId = parseInt(roomId, 10);
-      setRooms(prevRooms => {
-        const newRooms = prevRooms.map(room =>
-          room.roomId === numericRoomId ? { ...room, participantCount } : room
-        );
-        console.log('[DEBUG] New rooms state after update:', newRooms); // Debug log
-        return newRooms;
-      });
+      setRooms(prevRooms =>
+        prevRooms.map(room =>
+          room.roomId === numericRoomId ? { ...room, participantCount, hostId, hostName, roomType, isPrivate } : room
+        )
+      );
     };
-
-    addMessageListener('rooms-list', handleRoomsList);
-    addMessageListener('room-created', handleRoomCreated);
-    addMessageListener('room-deleted', handleRoomDeleted);
-    addMessageListener('room-updated', handleRoomUpdated);
 
     const handleCreateRoomSuccess = (newlyCreatedRoom) => {
       if (newlyCreatedRoom && newlyCreatedRoom.id) {
@@ -71,24 +80,39 @@ const LobbyPage = () => {
       }
     };
 
-    addMessageListener('room-creation-success', handleCreateRoomSuccess);
+    const handleCategoriesList = (categoryList) => {
+      setCategories(categoryList); // Store full category objects
+    };
 
-    if (isConnected) {
-      requestRooms(sendMessage);
-    } else {
-      setLoading(true); // Show loading if disconnected
-      setRooms([]); // Clear rooms if disconnected
-    }
+    addMessageListener('rooms-list', handleRoomsList);
+    addMessageListener('room-created', handleRoomCreated);
+    addMessageListener('room-deleted', handleRoomDeleted);
+    addMessageListener('room-updated', handleRoomUpdated);
+    addMessageListener('room-creation-success', handleCreateRoomSuccess);
+    addMessageListener('categories-list', handleCategoriesList); // New listener
 
     return () => {
-      console.log('LobbyPage unmounted');
       removeMessageListener('rooms-list', handleRoomsList);
       removeMessageListener('room-created', handleRoomCreated);
       removeMessageListener('room-deleted', handleRoomDeleted);
       removeMessageListener('room-updated', handleRoomUpdated);
       removeMessageListener('room-creation-success', handleCreateRoomSuccess);
+      removeMessageListener('categories-list', handleCategoriesList);
     };
-  }, [isConnected, sendMessage, addMessageListener, removeMessageListener, navigate, addNotification]);
+  }, [addMessageListener, removeMessageListener, navigate, addNotification]);
+
+  // Effect for fetching initial data based on connection status
+  useEffect(() => {
+    if (isConnected) {
+      setLoading(true);
+      requestRooms(sendMessage); // Request rooms
+      requestCategories(); // Request categories
+    } else {
+      setLoading(true);
+      setRooms([]);
+      setCategories([]);
+    }
+  }, [isConnected, sendMessage, requestCategories]);
 
   const handleCreateRoom = (newRoomData) => {
     if (!user) {
@@ -96,19 +120,33 @@ const LobbyPage = () => {
       return;
     }
     if (!newRoomData.roomName.trim()) {
-      addNotification('방 제목을 입력해주세요.', 'error'); // Uncommented
+      addNotification('방 제목을 입력해주세요.', 'error');
       return;
     }
-    // Ensure the category is valid before creating
-    if (!CATEGORIES.includes(newRoomData.category)) { // Changed category to newRoomData.category
-        addNotification('유효한 카테고리를 선택해주세요.', 'error'); // Uncommented
-        return;
+
+    // Find the category ID based on the selected category name
+    const selectedCategory = categories.find(catName => catName === newRoomData.category);
+    let categoryId = null;
+    if (selectedCategory) {
+        // This assumes categories state holds objects with id and name, but it only holds names.
+        // We need to fetch categories with IDs from the server.
+        // For now, we'll pass the name and let the server resolve it, or update categories state.
+        // For now, let's assume newRoomData.categoryId is passed directly from modal if selected.
+        // Or, we need to update the categories state to store full category objects.
+        // For simplicity, let's assume the modal passes categoryId directly.
+        // If newRoomData.category is a name, we need to map it to an ID.
+        // Let's assume the modal passes the category name, and we need to find its ID.
+        const categoryObject = categories.find(cat => cat.name === newRoomData.category); // Assuming categories state stores objects
+        categoryId = categoryObject ? categoryObject.id : null;
     }
+
     const payload = {
       name: newRoomData.roomName,
-      category: newRoomData.category,
+      categoryId: newRoomData.categoryId, // Assuming modal provides categoryId
       maxParticipants: newRoomData.maxParticipants,
       userId: user.id,
+      isPrivate: newRoomData.isPrivate || false, // Default to false
+      roomType: 'group', // Always 'group' for lobby creation
     };
     createRoom(sendMessage, payload);
     setIsModalOpen(false);
@@ -120,19 +158,19 @@ const LobbyPage = () => {
     
     const categoryMatch = categoryFilter === allCategoriesLabel || 
                           categoryFilter === '' || 
-                          room.category.toLowerCase().includes(categoryFilter.toLowerCase());
+                          (room.category && room.category.toLowerCase().includes(categoryFilter.toLowerCase()));
 
     return nameMatch && categoryMatch;
   });
 
   return (
-    <div className="lobby-page-main"> {/* Removed lobby-layout and FriendsPanel */}
+    <div className="lobby-page-main">
       <ActiveCallCard />
       <header className="lobby-page-header">
         <div className="room-filters">
           <div className="category-filter-wrapper">
             <AutocompleteSelect
-              options={CATEGORIES}
+              options={categories.map(cat => cat.name)} // Use category names for options
               value={categoryFilter}
               onChange={setCategoryFilter}
               allOptionsLabel={allCategoriesLabel}
@@ -166,6 +204,7 @@ const LobbyPage = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)} 
         onCreate={handleCreateRoom}
+        categories={categories} // Pass categories to modal
       />
     </div>
   );

@@ -61,7 +61,7 @@ router.get('/me', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         const result = await db.query(
-            'SELECT id, username, email, profile_image_url FROM users WHERE id = $1',
+            'SELECT id, username, email, profile_image_url, last_seen_at FROM users WHERE id = $1',
             [userId]
         );
 

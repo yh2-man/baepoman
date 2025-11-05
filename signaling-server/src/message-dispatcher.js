@@ -9,7 +9,9 @@ const {
     handleLeaveRoom, 
     handleChatMessage,
     handleWebRTCSignaling,
-    handleGetChatHistory // Add new handler for getting chat history
+    handleGetChatHistory, // Add new handler for getting chat history
+    handleDeleteMessage,
+    handleGetCategories,
 } = require('./handlers/room-handlers.js');
 
 const messageHandlers = {
@@ -27,10 +29,12 @@ const messageHandlers = {
     'create-room': handleCreateRoom,
     'join-room': handleJoinRoom,
     'leave-room': handleLeaveRoom,
+    'get-categories': handleGetCategories,
 
     // Chat
     'chat-message': handleChatMessage,
     'get-chat-history': handleGetChatHistory,
+    'delete-message': handleDeleteMessage,
 
     // WebRTC Signaling
     'offer': handleWebRTCSignaling,
@@ -66,7 +70,8 @@ function dispatchMessage(ws, message, wss, rooms) { // Pass rooms map
         // Pass rooms map to the handler if it needs it
         const payloadExpectedHandlers = [
             'login', 'signup', 'update-profile', 'verify-email', 'get-user-profile',
-            'get-rooms', 'create-room', 'join-room', 'leave-room', 'chat-message', 'get-chat-history'
+            'get-rooms', 'create-room', 'join-room', 'leave-room', 'chat-message', 'get-chat-history', 'delete-message', 'get-categories',
+            'stream-id-map' // Add stream-id-map here
         ];
 
         if (payloadExpectedHandlers.includes(data.type)) {

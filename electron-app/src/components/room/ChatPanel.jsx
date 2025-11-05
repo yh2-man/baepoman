@@ -5,7 +5,7 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import './ChatPanel.css';
 
-const ChatPanel = ({ roomId, messages, onSendMessage }) => {
+const ChatPanel = ({ roomId, messages, onSendMessage, onDeleteMessage }) => {
     const { user } = useAuth();
     const { profiles, getProfile } = useProfiles();
     const [messageInput, setMessageInput] = useState('');
@@ -31,6 +31,17 @@ const ChatPanel = ({ roomId, messages, onSendMessage }) => {
             ? `http://localhost:3001${profile.profile_image_url}`
             : null;
 
+        // If message is soft-deleted, render a placeholder
+        if (msg.deletedAt) {
+            return (
+                <div key={msg.id} className="chat-message deleted-message">
+                    <div className="message-content">
+                        <div className="message-text">삭제된 메시지입니다.</div>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div key={msg.id} className={`chat-message ${isMyMessage ? 'my-message' : 'other-message'}`}>
                 <div className="message-avatar">
@@ -44,8 +55,13 @@ const ChatPanel = ({ roomId, messages, onSendMessage }) => {
                     <div className="message-header">
                         <span className="message-username">{msg.username}</span>
                         <span className="message-timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                        {isMyMessage && (
+                            <button onClick={() => onDeleteMessage(msg.id)} className="delete-message-btn">
+                                삭제
+                            </button>
+                        )}
                     </div>
-                    <div className="message-text">{msg.message}</div>
+                    <div className="message-text">{msg.content}</div>
                 </div>
             </div>
         );

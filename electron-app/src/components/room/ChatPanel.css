@@ -129,3 +129,35 @@
     padding-left: 15px;
     padding-right: 15px;
 }
+
+/* Styles for soft-deleted messages */
+.deleted-message .message-text {
+    color: var(--text-color-secondary);
+    background-color: transparent;
+    font-style: italic;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* Delete button for messages */
+.delete-message-btn {
+    background: none;
+    border: none;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 0 4px;
+    margin: 0;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Show delete button on hover of the message header */
+.message-header:hover .delete-message-btn {
+    opacity: 1;
+}
+
+.delete-message-btn:hover {
+    color: var(--danger-color);
+    text-decoration: underline;
+}

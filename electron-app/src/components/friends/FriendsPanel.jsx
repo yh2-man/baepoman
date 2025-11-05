@@ -9,11 +9,11 @@ import './FriendsPanel.css';
 // MyProfileCard component to clearly separate logic
 const MyProfileCard = () => {
   const { user } = useAuth();
-  console.log('MyProfileCard user:', user); // Debug log
 
   if (!user) return null;
 
-  const avatarUrl = user.profile_image_url
+  // Only construct a URL if profile_image_url is a non-empty string
+  const avatarUrl = (typeof user.profile_image_url === 'string' && user.profile_image_url)
     ? `http://localhost:3001${user.profile_image_url}`
     : null;
 
@@ -23,7 +23,7 @@ const MyProfileCard = () => {
         {avatarUrl ? (
           <img src={avatarUrl} alt={user.username} className="friend-avatar-img" />
         ) : (
-          user.username.charAt(0)
+          <div className="avatar-placeholder">{user.username.charAt(0)}</div>
         )}
       </div>
       <div className="friend-info">

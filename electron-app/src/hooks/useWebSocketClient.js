@@ -90,14 +90,15 @@ export const useWebSocketClient = (url) => {
         connect();
 
         return () => {
-            // Cleanup: prevent further reconnects and close the socket
+            // Stop any pending reconnection attempts when the hook unmounts.
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
-                reconnectTimeoutRef.current = null;
             }
-            if (ws.current && (ws.current.readyState === WebSocket.CONNECTING || ws.current.readyState === WebSocket.OPEN)) {
-                ws.current.shouldReconnect = false; // Flag to prevent reconnect on manual close
-                ws.current.close();
+            // To ensure the WebSocket connection persists across development hot-reloads and
+            // StrictMode re-renders, we don't close the connection here. We just prevent
+            // the `onclose` handler from attempting to reconnect after a manual cleanup.
+            if (ws.current) {
+                ws.current.shouldReconnect = false;
             }
         };
     }, [connect]); // useEffect depends on the stable 'connect' function

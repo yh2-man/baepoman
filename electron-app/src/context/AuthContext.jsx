@@ -116,7 +116,7 @@ export function AuthProvider({ children }) {
         logout,
         updateUser,
         loginAndSetPersistence, // Expose the new login function
-    }), [user, token, currentRoom, setCurrentRoom, ws, isConnected, sendMessage, addMessageListener, removeMessageListener, logout, updateUser, loginAndSetPersistence]);
+    }), [user, token, currentRoom, isConnected]);
 
     if (loading) {
         return <div>Loading...</div>;

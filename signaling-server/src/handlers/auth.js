@@ -27,6 +27,9 @@ async function handleLogin(ws, { email, password }) {
         const tokenPayload = { id: user.id, username: user.username };
         const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+        // Update last_seen_at
+        await db.query('UPDATE users SET last_seen_at = NOW() WHERE id = $1', [user.id]);
+
         // Attach user info to WebSocket connection
         ws.userId = user.id;
         ws.username = user.username;
@@ -39,7 +42,8 @@ async function handleLogin(ws, { email, password }) {
                     id: user.id,
                     username: user.username,
                     email: user.email,
-                    profile_image_url: user.profile_image_url
+                    profile_image_url: user.profile_image_url,
+                    last_seen_at: new Date().toISOString() // Reflect updated time
                 },
                 token: token
             }

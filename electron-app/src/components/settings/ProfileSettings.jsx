@@ -121,6 +121,13 @@ const ProfileSettings = () => {
                 />
             </div>
 
+            {user?.last_seen_at && (
+                <div className="form-section">
+                    <label>마지막 접속 시간</label>
+                    <p>{new Date(user.last_seen_at).toLocaleString()}</p>
+                </div>
+            )}
+
             <div className="form-section">
                 <h4>비밀번호 변경</h4>
                 <div className="password-fields">

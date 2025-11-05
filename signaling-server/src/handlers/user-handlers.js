@@ -6,7 +6,7 @@ async function handleGetUserProfile(ws, payload) {
 
     try {
         const result = await db.query(
-            'SELECT id, username, profile_image_url FROM users WHERE id = $1',
+            'SELECT id, username, profile_image_url, last_seen_at FROM users WHERE id = $1',
             [userId]
         );
 

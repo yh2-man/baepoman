@@ -1,44 +1,42 @@
-import React, { useEffect, useRef } from 'react';
-import { useWebRTC } from '../../context/WebRTCContext';
-import { useAuth } from '../../context/AuthContext'; // To get user.id for local stream alt
-import './GlobalAudioStreams.css';
+import React, { useRef, useEffect } from 'react';
 
-const GlobalAudioStreams = () => {
-    const { user } = useAuth();
-    const { localStream, remoteStreams } = useWebRTC();
-    const localAudioRef = useRef(null);
-
-    // Effect to attach local stream to the local audio element
-    useEffect(() => {
-        if (localAudioRef.current && localStream) {
-            localAudioRef.current.srcObject = localStream;
-        }
-    }, [localStream]);
-
-    return (
-        <div className="global-audio-streams-container">
-            {/* Local User's Audio (muted to prevent self-echo) */}
-            <audio ref={localAudioRef} autoPlay muted playsInline />
-
-            {/* Remote Participants' Audio */}
-            {Object.entries(remoteStreams).map(([userId, stream]) => (
-                <RemoteAudioPlayer key={userId} userId={userId} stream={stream} />
-            ))}
-        </div>
-    );
-};
-
-// Helper component for remote audio players
-const RemoteAudioPlayer = ({ userId, stream }) => {
+const AudioStream = ({ stream, isMuted }) => {
     const audioRef = useRef(null);
 
     useEffect(() => {
-        if (audioRef.current && stream) {
+        if (audioRef.current) {
             audioRef.current.srcObject = stream;
         }
     }, [stream]);
 
-    return <audio ref={audioRef} autoPlay playsInline />;
+    return <audio ref={audioRef} autoPlay playsInline muted={isMuted} />;
+};
+
+const GlobalAudioStreams = ({ remoteStreams, isGlobalMuted }) => {
+    // remoteStreams is an object: { userId: { stream, isMuted } }
+    // Add a guard clause to handle null or undefined remoteStreams
+    const streams = Object.entries(remoteStreams || {});
+
+    return (
+        <div className="global-audio-streams" style={{ display: 'none' }}>
+            {streams.map(([userId, streamInfo]) => {
+                if (!streamInfo || !streamInfo.stream) {
+                    return null;
+                }
+                // streamInfo.isMuted is the individual mute status from the sender
+                // isGlobalMuted is the local user's choice to mute all incoming audio
+                const isEffectivelyMuted = isGlobalMuted || streamInfo.isMuted;
+
+                return (
+                    <AudioStream
+                        key={userId}
+                        stream={streamInfo.stream}
+                        isMuted={isEffectivelyMuted}
+                    />
+                );
+            })}
+        </div>
+    );
 };
 
 export default GlobalAudioStreams;

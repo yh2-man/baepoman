@@ -17,24 +17,39 @@ const broadcastToLobby = (wss, type, payload) => {
     });
 };
 
+// Helper function to get categories
+async function handleGetCategories(ws) {
+    try {
+        const result = await db.query('SELECT id, name, image_url FROM categories ORDER BY name ASC');
+        send(ws, 'categories-list', result.rows);
+    } catch (error) {
+        console.error('Failed to get categories:', error);
+        send(ws, 'error', { message: 'Failed to retrieve categories list.' });
+    }
+}
+
 async function handleGetRooms(ws, payload, rooms) {
-    console.log('Received request for room list.'); // <--- DEBUG LOG
+    console.log('Received request for room list.');
     try {
         const query = `
             SELECT 
                 r.id, 
                 r.name, 
-                r.category, 
+                r.room_type AS "roomType",
+                r.is_private AS "isPrivate",
                 r.max_participants AS "maxParticipants", 
-                u.username AS "hostName"
+                u.username AS "hostName",
+                c.name AS "categoryName",
+                c.image_url AS "categoryImageUrl"
             FROM rooms r
-            JOIN users u ON r.host_id = u.id
+            INNER JOIN users u ON r.host_id = u.id
+            LEFT JOIN categories c ON r.category_id = c.id
+            WHERE r.room_type = 'group' -- Only show group rooms in the lobby list
             ORDER BY r.created_at DESC;
         `;
         const result = await db.query(query);
         const dbRooms = result.rows;
 
-        // Enhance with live participant count from the in-memory 'rooms' map
         const liveRooms = dbRooms.map(room => ({
             ...room,
             participantCount: rooms.get(room.id)?.size || 0,
@@ -49,15 +64,19 @@ async function handleGetRooms(ws, payload, rooms) {
 
 
 async function handleCreateRoom(ws, payload, rooms, wss) {
-    const { name, category, maxParticipants, userId } = payload;
-    if (!name || !userId || !maxParticipants) {
-        return send(ws, 'error', { message: 'Room name, max participants, and user ID are required.' });
+    const { name, categoryId, maxParticipants, userId, isPrivate, roomType = 'group' } = payload;
+    // For group rooms, name is required. For DM rooms, name can be null.
+    if (!userId || !maxParticipants) {
+        return send(ws, 'error', { message: 'User ID and max participants are required.' });
+    }
+    if (roomType === 'group' && !name) {
+        return send(ws, 'error', { message: 'Room name is required for group rooms.' });
     }
 
     try {
         const result = await db.query(
-            'INSERT INTO rooms (name, category, host_id, max_participants) VALUES ($1, $2, $3, $4) RETURNING id, name, category, max_participants AS "maxParticipants", created_at',
-            [name, category, userId, maxParticipants]
+            'INSERT INTO rooms (name, room_type, category_id, host_id, max_participants, is_private) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, room_type AS "roomType", category_id AS "categoryId", max_participants AS "maxParticipants", is_private AS "isPrivate", created_at',
+            [name || null, roomType, categoryId || null, userId, maxParticipants, isPrivate]
         );
         const newRoom = result.rows[0];
         
@@ -65,19 +84,33 @@ async function handleCreateRoom(ws, payload, rooms, wss) {
         const userResult = await db.query('SELECT username FROM users WHERE id = $1', [userId]);
         const hostName = userResult.rows[0]?.username;
 
+        let categoryName = null;
+        let categoryImageUrl = null;
+        if (newRoom.categoryId) {
+            const categoryResult = await db.query('SELECT name, image_url FROM categories WHERE id = $1', [newRoom.categoryId]);
+            if (categoryResult.rows.length > 0) {
+                categoryName = categoryResult.rows[0].name;
+                categoryImageUrl = categoryResult.rows[0].image_url;
+            }
+        }
+
         const roomForClient = {
             ...newRoom,
             hostName,
+            categoryName,
+            categoryImageUrl,
             participantCount: 0 // Starts with 0, will be 1 after join
         };
 
-        // Broadcast to all clients in the lobby
-        broadcastToLobby(wss, 'room-created', roomForClient);
+        // Broadcast to all clients in the lobby if it's a group room
+        if (roomType === 'group') {
+            broadcastToLobby(wss, 'room-created', roomForClient);
+        }
         
         // Also send a specific confirmation to the creator, which can include more data if needed
         send(ws, 'room-creation-success', roomForClient); 
 
-        console.log(`Room created in DB: ${newRoom.name} (ID: ${newRoom.id}) by user ${userId}`);
+        console.log(`Room created in DB: ${newRoom.name} (ID: ${newRoom.id}) by user ${userId}. Type: ${roomType}`);
 
     } catch (error) {
         console.error('Failed to create room:', error);
@@ -90,7 +123,16 @@ async function handleJoinRoom(ws, payload, rooms, wss) { // Add wss
     
     try {
         // Ensure the room exists in the database before joining
-        const dbResult = await db.query('SELECT * FROM rooms WHERE id = $1', [roomId]);
+        const dbResult = await db.query(
+            `SELECT 
+                r.id, r.name, r.room_type AS "roomType", r.is_private AS "isPrivate", 
+                r.max_participants AS "maxParticipants", r.host_id AS "hostId", r.category_id AS "categoryId",
+                c.name AS "categoryName", c.image_url AS "categoryImageUrl"
+            FROM rooms r
+            LEFT JOIN categories c ON r.category_id = c.id
+            WHERE r.id = $1`,
+            [roomId]
+        );
         if (dbResult.rows.length === 0) {
             return send(ws, 'error', { message: 'Room not found.' });
         }
@@ -105,7 +147,7 @@ async function handleJoinRoom(ws, payload, rooms, wss) { // Add wss
         }
 
         // Check if room is full
-        if (room.size >= dbRoom.max_participants) {
+        if (room.size >= dbRoom.maxParticipants) {
             return send(ws, 'error', { message: 'Room is full.' });
         }
 
@@ -129,7 +171,7 @@ async function handleJoinRoom(ws, payload, rooms, wss) { // Add wss
 
         room.forEach(client => {
             if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ type: 'user-joined', payload: { user: joiningUser } }));
+                send(client, 'user-joined', { user: joiningUser });
             }
         });
 
@@ -142,7 +184,8 @@ async function handleJoinRoom(ws, payload, rooms, wss) { // Add wss
                 const userResult = await db.query('SELECT username FROM users WHERE id = $1', [client.userId]);
                 username = userResult.rows[0]?.username || 'Unknown User';
             }
-                        return {                id: client.userId,
+            return {
+                id: client.userId,
                 username: username,
             };
         }));
@@ -151,9 +194,12 @@ async function handleJoinRoom(ws, payload, rooms, wss) { // Add wss
             room: {
                 id: dbRoom.id,
                 name: dbRoom.name,
-                category: dbRoom.category,
-                hostId: dbRoom.host_id,
-                maxParticipants: dbRoom.max_participants,
+                roomType: dbRoom.roomType,
+                isPrivate: dbRoom.isPrivate,
+                categoryName: dbRoom.categoryName,
+                categoryImageUrl: dbRoom.categoryImageUrl,
+                hostId: dbRoom.hostId,
+                maxParticipants: dbRoom.maxParticipants,
             },
             participants: currentParticipants,
         };
@@ -176,13 +222,20 @@ async function handleLeaveRoom(ws, payload, rooms, wss) {
         room.delete(ws);
         console.log(`User ${userId} left room ${roomId}. Remaining participants: ${room.size}`);
 
-        // Notify lobby of participant count change
-        broadcastToLobby(wss, 'room-updated', { roomId, participantCount: room.size });
+        // Fetch room details to get room_type and is_private
+        const roomDetailsResult = await db.query('SELECT room_type, is_private FROM rooms WHERE id = $1', [roomId]);
+        const roomType = roomDetailsResult.rows[0]?.room_type || 'group';
+        const isPrivate = roomDetailsResult.rows[0]?.is_private || false;
+
+        // Notify lobby of participant count change (only for group rooms)
+        if (roomType === 'group') {
+            broadcastToLobby(wss, 'room-updated', { roomId, participantCount: room.size, roomType, isPrivate });
+        }
 
         // Notify remaining clients in the same room
         room.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ type: 'user-left', payload: { userId } }));
+                send(client, 'user-left', { userId });
             }
         });
 
@@ -190,18 +243,24 @@ async function handleLeaveRoom(ws, payload, rooms, wss) {
         if (room.size === 0) {
             console.log(`[DEBUG] Room ${roomId} is empty. Attempting to delete from memory and DB.`);
             rooms.delete(roomId);
-            try {
-                const deleteResult = await db.query('DELETE FROM rooms WHERE id = $1', [roomId]);
-                console.log(`[DEBUG] DB Delete result for room ${roomId}:`, deleteResult.rowCount);
-                // Broadcast to lobby that the room is deleted
-                broadcastToLobby(wss, 'room-deleted', { roomId });
-                console.log(`[DEBUG] Broadcasted 'room-deleted' for room ${roomId}.`);
-            } catch (error) {
-                console.error(`[DEBUG] Failed to delete room ${roomId} from database:`, error);
+            // Only delete group rooms from DB when empty. DM rooms might persist.
+            if (roomType === 'group') {
+                try {
+                    const deleteResult = await db.query('DELETE FROM rooms WHERE id = $1', [roomId]);
+                    console.log(`[DEBUG] DB Delete result for room ${roomId}:`, deleteResult.rowCount);
+                    // Broadcast to lobby that the room is deleted
+                    broadcastToLobby(wss, 'room-deleted', { roomId });
+                    console.log(`[DEBUG] Broadcasted 'room-deleted' for room ${roomId}.`);
+                } catch (error) {
+                    console.error(`[DEBUG] Failed to delete room ${roomId} from database:`, error);
+                }
+            } else if (roomType === 'dm') {
+                console.log(`[DEBUG] DM Room ${roomId} is empty. Not deleting from DB.`);
+                // DM rooms are not deleted from DB when empty, they persist for chat history.
             }
         } else { // Room still has participants
             // Check if the leaving user was the host
-            const roomDbResult = await db.query('SELECT host_id FROM rooms WHERE id = $1', [roomId]);
+            const roomDbResult = await db.query('SELECT host_id, room_type, is_private FROM rooms WHERE id = $1', [roomId]);
             const currentHostId = roomDbResult.rows[0]?.host_id;
 
             if (currentHostId === userId) {
@@ -225,23 +284,29 @@ async function handleLeaveRoom(ws, payload, rooms, wss) {
                     // Update lobby with new host info
                     const newHostUserResult = await db.query('SELECT username FROM users WHERE id = $1', [newHostId]);
                     const newHostUsername = newHostUserResult.rows[0]?.username;
-                    broadcastToLobby(wss, 'room-updated', { roomId, hostId: newHostId, hostName: newHostUsername, participantCount: room.size });
+                    if (roomType === 'group') {
+                        broadcastToLobby(wss, 'room-updated', { roomId, hostId: newHostId, hostName: newHostUsername, participantCount: room.size, roomType, isPrivate });
+                    }
 
                 } else {
                     // This case should ideally be handled by room.size === 0, but as a fallback
                     console.log(`[DEBUG] Room ${roomId} is empty after host left. Deleting.`);
                     rooms.delete(roomId);
-                    try {
-                        await db.query('DELETE FROM rooms WHERE id = $1', [roomId]);
-                        broadcastToLobby(wss, 'room-deleted', { roomId });
-                    } catch (error) {
-                        console.error(`[DEBUG] Failed to delete room ${roomId} from database after host left:`, error);
+                    if (roomType === 'group') {
+                        try {
+                            await db.query('DELETE FROM rooms WHERE id = $1', [roomId]);
+                            broadcastToLobby(wss, 'room-deleted', { roomId });
+                        } catch (error) {
+                            console.error(`[DEBUG] Failed to delete room ${roomId} from database after host left:`, error);
+                        }
                     }
                 }
             } else {
                 console.log(`[DEBUG] User ${userId} left room ${roomId}. Not host. Room still has participants: ${room.size}.`);
                 // Only update participant count in lobby if non-host leaves
-                broadcastToLobby(wss, 'room-updated', { roomId, participantCount: room.size });
+                if (roomType === 'group') {
+                    broadcastToLobby(wss, 'room-updated', { roomId, participantCount: room.size, roomType, isPrivate });
+                }
             }
         }
     }
@@ -249,16 +314,16 @@ async function handleLeaveRoom(ws, payload, rooms, wss) {
 }
 
 async function handleChatMessage(ws, payload, rooms) {
-    const { roomId, userId, message } = payload;
-    if (!roomId || !userId || !message) return;
+    const { roomId, userId, content } = payload; // Changed 'message' to 'content'
+    if (!roomId || !userId || !content) return;
 
     try {
         // 1. Save message to DB
         const result = await db.query(
-            'INSERT INTO chat_messages (room_id, user_id, message) VALUES ($1, $2, $3) RETURNING id, created_at',
-            [roomId, userId, message]
+            'INSERT INTO chat_messages (room_id, user_id, content) VALUES ($1, $2, $3) RETURNING id, created_at, is_edited, deleted_at', // Changed 'message' to 'content', added returning fields
+            [roomId, userId, content]
         );
-        const { id: messageId, created_at: timestamp } = result.rows[0];
+        const { id: messageId, created_at: timestamp, is_edited: isEdited, deleted_at: deletedAt } = result.rows[0];
 
         // 2. Fetch sender's username and profile image URL
         const userResult = await db.query(
@@ -278,8 +343,10 @@ async function handleChatMessage(ws, payload, rooms) {
                         userId,
                         username: sender.username,
                         profile_image_url: sender.profile_image_url,
-                        message,
+                        content,
                         timestamp,
+                        isEdited,
+                        deletedAt,
                     });
                 }
             });
@@ -337,8 +404,11 @@ async function handleGetChatHistory(ws, payload) {
                 cm.user_id AS "userId",
                 u.username,
                 u.profile_image_url AS "profileImageUrl",
-                cm.message,
-                cm.created_at AS "timestamp"
+                cm.content, -- Changed from cm.message
+                cm.is_edited AS "isEdited",
+                cm.created_at AS "timestamp",
+                cm.updated_at AS "updatedAt",
+                cm.deleted_at AS "deletedAt"
             FROM chat_messages cm
             JOIN users u ON cm.user_id = u.id
             WHERE cm.room_id = $1
@@ -365,6 +435,45 @@ async function handleGetChatHistory(ws, payload) {
     }
 }
 
+async function handleDeleteMessage(ws, payload, rooms) {
+    const { messageId } = payload;
+    const { userId, roomId } = ws;
+
+    if (!messageId || !userId || !roomId) {
+        return send(ws, 'error', { message: 'Invalid request for message deletion.' });
+    }
+
+    try {
+        // 1. Verify that the user requesting deletion is the author of the message
+        const messageResult = await db.query('SELECT user_id FROM chat_messages WHERE id = $1', [messageId]);
+        if (messageResult.rows.length === 0) {
+            return send(ws, 'error', { message: 'Message not found.' });
+        }
+        if (messageResult.rows[0].user_id !== userId) {
+            return send(ws, 'error', { message: 'You do not have permission to delete this message.' });
+        }
+
+        // 2. Perform the soft delete by updating the deleted_at timestamp
+        await db.query('UPDATE chat_messages SET deleted_at = NOW() WHERE id = $1', [messageId]);
+
+        // 3. Broadcast the deletion to all clients in the room
+        const room = rooms.get(roomId);
+        if (room) {
+            const broadcastPayload = { roomId, messageId };
+            room.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    send(client, 'message-deleted', broadcastPayload);
+                }
+            });
+        }
+        console.log(`Message ${messageId} in room ${roomId} soft-deleted by user ${userId}.`);
+
+    } catch (error) {
+        console.error(`Failed to soft-delete message ${messageId}:`, error);
+        send(ws, 'error', { message: 'Failed to delete message.' });
+    }
+}
+
 module.exports = {
     handleGetRooms,
     handleCreateRoom,
@@ -373,4 +482,6 @@ module.exports = {
     handleChatMessage,
     handleWebRTCSignaling,
     handleGetChatHistory, // Export the new handler
+    handleDeleteMessage,
+    handleGetCategories
 };

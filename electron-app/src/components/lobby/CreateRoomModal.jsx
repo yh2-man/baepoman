@@ -2,20 +2,19 @@ import React, { useState } from 'react';
 import './CreateRoomModal.css';
 import Button from '../common/Button';
 import Input from '../common/Input';
-import { CATEGORIES } from '../../constants/categories';
-// import { useNotification } from '../../context/NotificationContext';
-import AutocompleteSelect from '../common/AutocompleteSelect'; // <-- Import the new reusable component
+// import { CATEGORIES } from '../../constants/categories'; // Removed
+import AutocompleteSelect from '../common/AutocompleteSelect';
 
-const CreateRoomModal = ({ isOpen, onClose, onCreate }) => {
+const CreateRoomModal = ({ isOpen, onClose, onCreate, categories }) => { // Add categories prop
   const [roomName, setRoomName] = useState('');
   const [maxParticipants, setMaxParticipants] = useState(5);
-  const [category, setCategory] = useState('');
-  // const { addNotification } = useNotification();
+  const [selectedCategoryName, setSelectedCategoryName] = useState(''); // To store selected category name
+  const [isPrivate, setIsPrivate] = useState(false); // New state for private room
 
   const handleMaxParticipantsChange = (e) => {
     let value = parseInt(e.target.value, 10);
     if (isNaN(value)) {
-      value = ''; // Allow clearing the input
+      value = '';
     } else if (value > 20) {
       value = 20;
     }
@@ -28,20 +27,32 @@ const CreateRoomModal = ({ isOpen, onClose, onCreate }) => {
 
   const handleSubmit = () => {
     if (!roomName.trim()) {
-      // addNotification('방 제목을 입력해주세요.', 'error');
       return;
     }
-    // Ensure the category is valid before creating
-    if (!CATEGORIES.includes(category)) {
-        // addNotification('유효한 카테고리를 선택해주세요.', 'error');
+
+    // Resolve categoryId from selectedCategoryName
+    const selectedCategory = categories.find(cat => cat.name === selectedCategoryName);
+    const categoryId = selectedCategory ? selectedCategory.id : null;
+
+    // Validation for category if needed (e.g., if a category is required)
+    if (selectedCategoryName && !categoryId) {
+        // addNotification('유효한 카테고리를 선택해주세요.', 'error'); // Uncommented
         return;
     }
-    onCreate({ roomName, maxParticipants, category });
+
+    onCreate({ 
+        roomName, 
+        maxParticipants, 
+        categoryId, // Pass categoryId
+        isPrivate,  // Pass isPrivate
+        roomType: 'group', // Hardcode type for this modal
+    });
     
     // Reset state after creation
     setRoomName('');
-    setCategory('');
+    setSelectedCategoryName('');
     setMaxParticipants(5);
+    setIsPrivate(false);
   };
 
   return (
@@ -70,15 +81,24 @@ const CreateRoomModal = ({ isOpen, onClose, onCreate }) => {
           />
         </div>
 
-        {/* Use the new reusable AutocompleteSelect component */}
         <div className="form-group">
           <label>카테고리</label>
           <AutocompleteSelect
-            options={CATEGORIES}
-            value={category}
-            onChange={setCategory}
+            options={categories.map(cat => cat.name)} // Use category names for options
+            value={selectedCategoryName}
+            onChange={setSelectedCategoryName}
             placeholder="카테고리 검색 또는 선택"
           />
+        </div>
+
+        <div className="form-group checkbox-group">
+          <input
+            type="checkbox"
+            id="is-private"
+            checked={isPrivate}
+            onChange={(e) => setIsPrivate(e.target.checked)}
+          />
+          <label htmlFor="is-private">비공개 방</label>
         </div>
 
         <div className="modal-actions">
