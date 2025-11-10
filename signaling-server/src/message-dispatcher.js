@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
-const { handleLogin, handleSignup, handleUpdateProfile } = require('./handlers/auth.js');
+const authenticateToken = require('./middleware/authenticateWs');
+const { handleLogin, handleSignup, handleUpdateProfile, handleReauthenticate } = require('./handlers/auth.js');
 const { handleEmailVerification } = require('./handlers/verification.js');
 const { handleGetUserProfile } = require('./handlers/user-handlers.js');
 const {
@@ -9,89 +10,82 @@ const {
     handleLeaveRoom, 
     handleChatMessage,
     handleWebRTCSignaling,
-    handleGetChatHistory, // Add new handler for getting chat history
+    handleGetChatHistory,
     handleDeleteMessage,
     handleGetCategories,
 } = require('./handlers/room-handlers.js');
+const {
+    handleFriendRequest,
+    handleAcceptFriendRequest,
+    handleDeclineFriendRequest,
+    handleRemoveFriend,
+    handleGetFriendsList,
+    handleDirectMessage,
+} = require('./handlers/friend-handlers.js');
 
 const messageHandlers = {
-    // Auth
+    // Public handlers (no authentication required)
     'login': handleLogin,
     'signup': handleSignup,
     'verify-email': handleEmailVerification,
-    'update-profile': handleUpdateProfile,
+    'reauthenticate': handleReauthenticate,
 
-    // User
-    'get-user-profile': handleGetUserProfile,
+    // Protected handlers (authentication required)
+    'update-profile': authenticateToken(handleUpdateProfile),
+    'get-user-profile': authenticateToken(handleGetUserProfile),
     
+    // Friends
+    'friend-request': authenticateToken(handleFriendRequest),
+    'get-friends-list': authenticateToken(handleGetFriendsList),
+    'accept-friend-request': authenticateToken(handleAcceptFriendRequest),
+    'decline-friend-request': authenticateToken(handleDeclineFriendRequest),
+    'remove-friend': authenticateToken(handleRemoveFriend),
+    'direct-message': authenticateToken(handleDirectMessage),
+
     // Rooms
-    'get-rooms': handleGetRooms,
-    'create-room': handleCreateRoom,
-    'join-room': handleJoinRoom,
-    'leave-room': handleLeaveRoom,
-    'get-categories': handleGetCategories,
+    'get-rooms': authenticateToken(handleGetRooms),
+    'create-room': authenticateToken(handleCreateRoom),
+    'join-room': authenticateToken(handleJoinRoom),
+    'leave-room': authenticateToken(handleLeaveRoom),
+    'get-categories': authenticateToken(handleGetCategories),
 
     // Chat
-    'chat-message': handleChatMessage,
-    'get-chat-history': handleGetChatHistory,
-    'delete-message': handleDeleteMessage,
+    'chat-message': authenticateToken(handleChatMessage),
+    'get-chat-history': authenticateToken(handleGetChatHistory),
+    'delete-message': authenticateToken(handleDeleteMessage),
 
-    // WebRTC Signaling
-    'offer': handleWebRTCSignaling,
-    'answer': handleWebRTCSignaling,
-    'ice-candidate': handleWebRTCSignaling,
-    
-    // Add other message types and their handlers here
+    // WebRTC Signaling (authentication is implicitly handled by being in a room)
+    'offer': authenticateToken(handleWebRTCSignaling),
+    'answer': authenticateToken(handleWebRTCSignaling),
+    'ice-candidate': authenticateToken(handleWebRTCSignaling),
 };
-function dispatchMessage(ws, message, wss, rooms) { // Pass rooms map
+
+function dispatchMessage(ws, message, wss, rooms) {
     let data;
     try {
         const messageStr = message.toString();
         data = JSON.parse(messageStr);
     } catch (e) {
         console.error("Failed to parse message or message is not JSON", e);
-        // If message is not a JSON, it might be a Blob for WebRTC
-        // This part needs to be smarter, broadcasting to a specific room
-        if (ws.roomId) {
-            const room = rooms.get(ws.roomId);
-            if (room) {
-                room.forEach((client) => {
-                    if (client !== ws && client.readyState === WebSocket.OPEN) {
-                        client.send(message);
-                    }
-                });
-            }
-        }
         return;
     }
 
     const handler = messageHandlers[data.type];
     if (handler) {
-        // Pass rooms map to the handler if it needs it
         const payloadExpectedHandlers = [
             'login', 'signup', 'update-profile', 'verify-email', 'get-user-profile',
+            'friend-request', 'get-friends-list', 'accept-friend-request', 'decline-friend-request', 'remove-friend', 'direct-message',
             'get-rooms', 'create-room', 'join-room', 'leave-room', 'chat-message', 'get-chat-history', 'delete-message', 'get-categories',
-            'stream-id-map' // Add stream-id-map here
+            'stream-id-map', 'reauthenticate'
         ];
 
         if (payloadExpectedHandlers.includes(data.type)) {
-            handler(ws, data.payload, rooms, wss);
+            handler(ws, data.payload, wss, rooms);
         } else {
-            // Handlers that expect the full data object (e.g., WebRTC signaling)
-            handler(ws, data, rooms, wss);
+            handler(ws, data, wss, rooms);
         }
     } else {
-        // Default: For WebRTC signaling, broadcast to the client's room
-        if (ws.roomId) {
-            const room = rooms.get(ws.roomId);
-            if (room) {
-                room.forEach((client) => {
-                    if (client !== ws && client.readyState === WebSocket.OPEN) {
-                        client.send(message.toString());
-                    }
-                });
-            }
-        }
+        console.warn(`No handler found for message type: ${data.type}`);
     }
 }
 

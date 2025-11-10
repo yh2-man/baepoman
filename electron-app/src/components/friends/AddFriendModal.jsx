@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-// import { useNotification } from '../../context/NotificationContext';
+import { useFriends } from '../../context/FriendsContext';
+import { useNotification } from '../../context/NotificationContext';
 import Button from '../common/Button';
 import Input from '../common/Input';
 import './AddFriendModal.css';
 
 const AddFriendModal = ({ isOpen, onClose }) => {
-  const [friendId, setFriendId] = useState('');
-  // const { addNotification } = useNotification();
+  const [fullTag, setFullTag] = useState('');
+  const { sendFriendRequest } = useFriends();
+  const { addNotification } = useNotification();
   const popoverRef = useRef(null);
 
-  // 팝오버 바깥을 클릭하면 닫히는 로직
   useEffect(() => {
     if (!isOpen) return;
 
@@ -26,31 +27,34 @@ const AddFriendModal = ({ isOpen, onClose }) => {
   }, [isOpen, onClose]);
 
   const handleSendRequest = () => {
-    if (!friendId.trim()) {
-      // addNotification('사용자 아이디를 입력해주세요.', 'error');
+    if (!fullTag.trim() || !fullTag.includes('#')) {
+      addNotification('올바른 형식으로 입력해주세요 (예: username#1234).', 'error');
       return;
     }
-    console.log(`Sending friend request to: ${friendId}`);
-    // addNotification(`'${friendId}'님에게 친구 요청을 보냈습니다.`, 'success');
-    setFriendId('');
+    sendFriendRequest(fullTag);
+    addNotification(`'${fullTag}'님에게 친구 요청을 보냈습니다.`, 'success');
+    setFullTag('');
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div 
-      ref={popoverRef} 
-      className={`add-friend-popover ${isOpen ? 'visible' : ''}`}>
-              <h2>친구 추가</h2>
-              <p>추가할 친구의 닉네임 또는 아이디(이메일)를 입력하세요.</p>
-              <Input
-                value={friendId}
-                onChange={(e) => setFriendId(e.target.value)}
-                placeholder="닉네임 또는 아이디 입력"
-              />
-              <div className="modal-actions">
+    <div className="add-friend-modal-overlay">
+        <div ref={popoverRef} className="add-friend-popover visible">
+            <h2>친구 추가</h2>
+            <p>친구의 사용자명과 태그를 입력해주세요.</p>
+            <Input
+                value={fullTag}
+                onChange={(e) => setFullTag(e.target.value)}
+                placeholder="username#1234"
+            />
+            <div className="modal-actions">
                 <Button onClick={onClose} variant="secondary">취소</Button>
-                <Button onClick={handleSendRequest}>요청</Button>
-              </div>    </div>
+                <Button onClick={handleSendRequest}>친구 요청 보내기</Button>
+            </div>
+        </div>
+    </div>
   );
 };
 

@@ -28,7 +28,7 @@ async function handleGetCategories(ws) {
     }
 }
 
-async function handleGetRooms(ws, payload, rooms) {
+async function handleGetRooms(ws, payload, wss, rooms) {
     console.log('Received request for room list.');
     try {
         const query = `
@@ -63,7 +63,7 @@ async function handleGetRooms(ws, payload, rooms) {
 }
 
 
-async function handleCreateRoom(ws, payload, rooms, wss) {
+async function handleCreateRoom(ws, payload, wss, rooms) {
     const { name, categoryId, maxParticipants, userId, isPrivate, roomType = 'group' } = payload;
     // For group rooms, name is required. For DM rooms, name can be null.
     if (!userId || !maxParticipants) {
@@ -118,7 +118,7 @@ async function handleCreateRoom(ws, payload, rooms, wss) {
     }
 }
 
-async function handleJoinRoom(ws, payload, rooms, wss) { // Add wss
+async function handleJoinRoom(ws, payload, wss, rooms) { // Add wss
     const { roomId, userId } = payload;
     
     try {
@@ -153,7 +153,7 @@ async function handleJoinRoom(ws, payload, rooms, wss) { // Add wss
 
         // If user is already in another room, make them leave first
         if (ws.roomId && ws.roomId !== roomId) {
-            await handleLeaveRoom(ws, {}, rooms, wss); // Pass wss, await it
+            await handleLeaveRoom(ws, {}, wss, rooms); // Pass wss, await it
         }
 
         ws.roomId = roomId;
@@ -213,7 +213,7 @@ async function handleJoinRoom(ws, payload, rooms, wss) { // Add wss
     }
 }
 
-async function handleLeaveRoom(ws, payload, rooms, wss) {
+async function handleLeaveRoom(ws, payload, wss, rooms) {
     const { roomId, userId } = ws;
     if (!roomId) return;
 
@@ -313,7 +313,7 @@ async function handleLeaveRoom(ws, payload, rooms, wss) {
     ws.roomId = null;
 }
 
-async function handleChatMessage(ws, payload, rooms) {
+async function handleChatMessage(ws, payload, wss, rooms) {
     const { roomId, userId, content } = payload; // Changed 'message' to 'content'
     if (!roomId || !userId || !content) return;
 
@@ -356,7 +356,7 @@ async function handleChatMessage(ws, payload, rooms) {
     }
 }
 
-function handleWebRTCSignaling(ws, payload, rooms, wss) {
+function handleWebRTCSignaling(ws, payload, wss, rooms) {
     console.log(`[DEBUG] Server: handleWebRTCSignaling called. Type: ${payload.type}, Sender: ${ws.userId}, Target: ${payload.payload.targetUserId}`); // Updated log
     const { targetUserId, ...signalingData } = payload.payload; // Corrected access
     const senderId = ws.userId; // The sender is the current WebSocket's user
@@ -435,7 +435,7 @@ async function handleGetChatHistory(ws, payload) {
     }
 }
 
-async function handleDeleteMessage(ws, payload, rooms) {
+async function handleDeleteMessage(ws, payload, wss, rooms) {
     const { messageId } = payload;
     const { userId, roomId } = ws;
 

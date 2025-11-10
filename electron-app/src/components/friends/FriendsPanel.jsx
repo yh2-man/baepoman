@@ -1,5 +1,6 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useFriends } from '../../context/FriendsContext';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import FriendCard from './FriendCard';
@@ -12,13 +13,12 @@ const MyProfileCard = () => {
 
   if (!user) return null;
 
-  // Only construct a URL if profile_image_url is a non-empty string
   const avatarUrl = (typeof user.profile_image_url === 'string' && user.profile_image_url)
-    ? `http://localhost:3001${user.profile_image_url}`
+    ? `http://localhost:8080${user.profile_image_url}` // Port updated to 8080
     : null;
 
   return (
-    <div className="friend-card"> {/* Re-using friend-card style for consistency */}
+    <div className="friend-card">
       <div className="friend-avatar">
         {avatarUrl ? (
           <img src={avatarUrl} alt={user.username} className="friend-avatar-img" />
@@ -28,24 +28,19 @@ const MyProfileCard = () => {
       </div>
       <div className="friend-info">
         <span className="friend-name">{user.username}</span>
-        <div className="friend-status">
-          <span className="status-dot online"></span>
-          <span>Online</span>
-        </div>
+        <span className="friend-tag">#{user.tag}</span>
       </div>
     </div>
   );
 };
 
 const FriendsPanel = () => {
-  const [friends, setFriends] = useState([]); // Removed mockFriends
   const [filter, setFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // TODO: Implement friend fetching logic here in a useEffect
+  const { friends, pendingRequests } = useFriends();
 
   const filteredFriends = friends.filter(friend => 
-    friend.name.toLowerCase().includes(filter.toLowerCase())
+    friend.username.toLowerCase().includes(filter.toLowerCase())
   );
 
   return (
@@ -54,23 +49,36 @@ const FriendsPanel = () => {
         <MyProfileCard />
       </div>
 
-      <div className="friends-list-section">
-        <div className="friends-list-header">
-          <h4>친구 목록</h4>
-          <Input 
-            placeholder="친구 검색..."
-            value={filter}
-            onChange={e => setFilter(e.target.value)}
-          />
-        </div>
-        <div className="friends-list custom-scrollbar">
-          {filteredFriends.length > 0 ? (
-            filteredFriends.map(friend => (
-              <FriendCard key={friend.id} friend={friend} />
-            ))
-          ) : (
-            <div className="no-friends-placeholder">친구를 추가해보세요.</div>
-          )}
+      <div className="friends-list-section custom-scrollbar">
+        {/* Pending Requests Section */}
+        {pendingRequests.incoming.length > 0 && (
+          <div className="friends-list-group">
+            <h5 className="friends-list-heading">보류 중인 요청 — {pendingRequests.incoming.length}</h5>
+            {pendingRequests.incoming.map(request => (
+              <FriendCard key={`pending-${request.id}`} friend={request} isPending />
+            ))}
+          </div>
+        )}
+
+        {/* Friends List Section */}
+        <div className="friends-list-group">
+          <div className="friends-list-header">
+            <h5 className="friends-list-heading">친구 목록</h5>
+            <Input 
+              placeholder="친구 검색..."
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+            />
+          </div>
+          <div className="friends-list">
+            {filteredFriends.length > 0 ? (
+              filteredFriends.map(friend => (
+                <FriendCard key={friend.id} friend={friend} />
+              ))
+            ) : (
+              <div className="no-friends-placeholder">친구를 추가해보세요.</div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -5,6 +5,7 @@
     border-radius: var(--border-radius);
     cursor: pointer;
     transition: background-color 0.2s;
+    position: relative; /* Add relative positioning for context menu and badge */
 }
 
 .friend-card:hover {
@@ -22,7 +23,8 @@
     align-items: center;
     font-weight: bold;
     margin-right: 12px;
-    overflow: hidden; /* Hide parts of the image that overflow the circle */
+    overflow: hidden;
+    position: relative; /* For positioning the badge */
 }
 
 .friend-avatar-img {
@@ -34,6 +36,7 @@
 .friend-info {
     display: flex;
     flex-direction: column;
+    flex-grow: 1; /* Allow info to take up space */
 }
 
 .friend-name {
@@ -41,28 +44,71 @@
     color: var(--text-color);
 }
 
-.friend-status {
-    display: flex;
-    align-items: center;
+.friend-tag {
     font-size: 0.8rem;
     color: var(--text-secondary-color);
 }
 
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 6px;
+.friend-actions {
+    display: flex;
+    gap: 8px;
 }
 
-.status-dot.online {
+.action-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
+}
+
+.action-btn.accept {
     background-color: var(--success-color);
 }
 
-.status-dot.offline {
-    background-color: var(--text-secondary-color);
+.action-btn.decline {
+    background-color: var(--error-color);
 }
 
-.status-dot.busy {
+.unread-badge {
     background-color: var(--error-color);
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: auto; /* Push the badge to the right */
+    margin-right: 10px; /* Add some space from the edge or actions */
+}
+
+/* Context Menu Styling */
+.context-menu {
+    position: fixed;
+    background-color: var(--background-tertiary);
+    border: 1px solid var(--background-modifier-accent);
+    border-radius: var(--border-radius);
+    padding: 8px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.context-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    color: var(--error-color);
+    font-weight: 500;
+}
+
+.context-menu-item:hover {
+    background-color: var(--background-modifier-hover);
 }

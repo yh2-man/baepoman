@@ -7,6 +7,7 @@ import { NotificationProvider } from './context/NotificationContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { ConfirmationProvider } from './context/ConfirmationContext';
 import { WebRTCProvider } from './context/WebRTCContext';
+import { FriendsProvider } from './context/FriendsContext'; // Import FriendsProvider
 import NotificationDisplay from './components/common/NotificationDisplay';
 import AuthLayout from './pages/layouts/AuthLayout';
 import AppLayout from './pages/layouts/AppLayout'; // Import AppLayout
@@ -49,29 +50,31 @@ function App() {
                     <AuthProvider>
                       <WebRTCProvider>
                         <ProfileProvider>
-                        {/* 5. Routes가 실제 페이지 경로를 정의합니다. */}
-                        <Routes>              {/* Protected routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route element={<AppLayout />}> {/* Use AppLayout here */}
-                  <Route path="/lobby" element={<LobbyPage />} />
-                  <Route path="/room/:roomId" element={<RoomPage />} />
-                  <Route path="/settings" element={<SettingsPage />}>
-                    <Route index element={<Navigate to="profile" replace />} />
-                    <Route path="profile" element={<ProfileSettings />} />
-                  </Route>
-                </Route>
-              </Route>
+                          <FriendsProvider>
+                            {/* 5. Routes가 실제 페이지 경로를 정의합니다. */}
+                            <Routes>              {/* Protected routes */}
+                              <Route element={<ProtectedRoute />}>
+                                <Route element={<AppLayout />}> {/* Use AppLayout here */}
+                                  <Route path="/lobby" element={<LobbyPage />} />
+                                  <Route path="/room/:roomId" element={<RoomPage />} />
+                                  <Route path="/settings" element={<SettingsPage />}>
+                                    <Route index element={<Navigate to="profile" replace />} />
+                                    <Route path="profile" element={<ProfileSettings />} />
+                                  </Route>
+                                </Route>
+                              </Route>
 
-              {/* Auth routes */}
-              <Route element={<AuthRoutes />}>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-              </Route>
+                              {/* Auth routes */}
+                              <Route element={<AuthRoutes />}>
+                                <Route path="/login" element={<LoginPage />} />
+                                <Route path="/signup" element={<SignupPage />} />
+                              </Route>
 
-              {/* Redirect any unmatched routes to /login */}
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-                      </ProfileProvider>
+                              {/* Redirect any unmatched routes to /login */}
+                              <Route path="*" element={<Navigate to="/login" replace />} />
+                            </Routes>
+                          </FriendsProvider>
+                        </ProfileProvider>
                       </WebRTCProvider>
           </AuthProvider>
                     </ConfirmationProvider>

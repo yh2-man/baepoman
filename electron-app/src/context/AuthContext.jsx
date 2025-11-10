@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const { addNotification } = useNotification();
-    const { ws, isConnected, sendMessage, addMessageListener, removeMessageListener } = useWebSocketClient('ws://localhost:3001');
+    const { isConnected, sendMessage, addMessageListener, removeMessageListener } = useWebSocketClient('ws://localhost:3001');
     const keepLoggedInRef = useRef(true); // Ref to store login persistence preference
 
     // Startup effect
@@ -82,10 +82,16 @@ export function AuthProvider({ children }) {
         };
 
         Object.entries(listeners).forEach(([type, handler]) => addMessageListener(type, handler));
+        
+        // If we have a token on startup, try to re-authenticate the websocket with it
+        if (token) {
+            sendMessage({ type: 'reauthenticate', payload: { token: token } });
+        }
+
         return () => {
             Object.entries(listeners).forEach(([type, handler]) => removeMessageListener(type, handler));
         };
-    }, [isConnected, addMessageListener, removeMessageListener, navigate, addNotification]);
+    }, [isConnected, addMessageListener, removeMessageListener, navigate, addNotification, token, sendMessage]);
 
     const loginAndSetPersistence = useCallback((email, password, keepLoggedIn) => {
         keepLoggedInRef.current = keepLoggedIn;
@@ -108,7 +114,6 @@ export function AuthProvider({ children }) {
         token,
         currentRoom, // Expose currentRoom
         setCurrentRoom, // Expose setCurrentRoom
-        ws,
         isConnected,
         sendMessage,
         addMessageListener,
@@ -116,7 +121,7 @@ export function AuthProvider({ children }) {
         logout,
         updateUser,
         loginAndSetPersistence, // Expose the new login function
-    }), [user, token, currentRoom, isConnected]);
+    }), [user, token, currentRoom, isConnected, sendMessage, addMessageListener, removeMessageListener, logout, updateUser, loginAndSetPersistence]);
 
     if (loading) {
         return <div>Loading...</div>;

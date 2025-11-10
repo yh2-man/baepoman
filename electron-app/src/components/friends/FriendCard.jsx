@@ -1,41 +1,86 @@
-import React, { useEffect } from 'react';
-import { useProfiles } from '../../context/ProfileContext';
+import React, { useState } from 'react';
+import { useFriends } from '../../context/FriendsContext';
 import './FriendCard.css';
 
-const FriendCard = ({ friend }) => {
-  const { profiles, getProfile } = useProfiles();
-  const profile = profiles[friend.id];
-
-  useEffect(() => {
-    if (friend.id) {
-      getProfile(friend.id);
-    }
-  }, [friend.id, getProfile]);
-
-  const statusClass = `status-dot ${friend.status.toLowerCase()}`;
-
-  const avatarUrl = profile?.profile_image_url 
-    ? `http://localhost:3001${profile.profile_image_url}` 
-    : null;
-
-  return (
-    <div className="friend-card">
-      <div className="friend-avatar">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={friend.name} className="friend-avatar-img" />
-        ) : (
-          friend.name.charAt(0)
-        )}
-      </div>
-      <div className="friend-info">
-        <span className="friend-name">{friend.name}</span>
-        <div className="friend-status">
-          <span className={statusClass}></span>
-          <span>{friend.status}</span>
+const ContextMenu = ({ x, y, onClose, onRemove }) => {
+    return (
+        <div className="context-menu" style={{ top: y, left: x }} onClick={onClose}>
+            <div className="context-menu-item" onClick={onRemove}>
+                친구 삭제
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
+};
+
+const FriendCard = ({ friend, isPending = false }) => {
+    const {
+        acceptFriendRequest,
+        declineFriendRequest,
+        removeFriend,
+        unreadMessages,
+        setActiveConversation,
+        markMessagesAsRead,
+    } = useFriends();
+
+    const [contextMenu, setContextMenu] = useState(null);
+
+    const unreadCount = unreadMessages[friend.id] || 0;
+
+    const handleContextMenu = (e) => {
+        e.preventDefault();
+        if (isPending) return; // No context menu for pending requests
+        setContextMenu({ x: e.clientX, y: e.clientY });
+    };
+
+    const closeContextMenu = () => {
+        setContextMenu(null);
+    };
+
+    const handleRemoveFriend = () => {
+        removeFriend(friend.id);
+        closeContextMenu();
+    };
+
+    const handleCardClick = () => {
+        if (isPending) return;
+        setActiveConversation(friend.id); // This will open the DM panel
+        markMessagesAsRead(friend.id);
+    };
+
+    const avatarUrl = friend.profile_image_url
+        ? `http://localhost:3001${friend.profile_image_url}`
+        : null;
+
+    return (
+        <div className="friend-card" onClick={handleCardClick} onContextMenu={handleContextMenu}>
+            <div className="friend-avatar">
+                {avatarUrl ? (
+                    <img src={avatarUrl} alt={friend.username} className="friend-avatar-img" />
+                ) : (
+                    <div className="avatar-placeholder">{friend.username.charAt(0)}</div>
+                )}
+            </div>
+            <div className="friend-info">
+                <span className="friend-name">{friend.username}</span>
+                <span className="friend-tag">#{friend.tag}</span>
+            </div>
+            {unreadCount > 0 && <div className="unread-badge">{unreadCount}</div>}
+            {isPending && (
+                <div className="friend-actions">
+                    <button className="action-btn accept" onClick={() => acceptFriendRequest(friend.id)}>✓</button>
+                    <button className="action-btn decline" onClick={() => declineFriendRequest(friend.id)}>×</button>
+                </div>
+            )}
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    onClose={closeContextMenu}
+                    onRemove={handleRemoveFriend}
+                />
+            )}
+        </div>
+    );
 };
 
 export default FriendCard;

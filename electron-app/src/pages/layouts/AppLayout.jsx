@@ -4,11 +4,14 @@ import Header from '../../components/header/Header';
 import Footer from '../../components/common/Footer';
 import FriendsPanel from '../../components/friends/FriendsPanel';
 import SettingsPanel from '../../components/settings/SettingsPanel';
-import GlobalAudioStreams from '../../components/common/GlobalAudioStreams'; // Import GlobalAudioStreams
-import './AppLayout.css'; // Import AppLayout.css
+import GlobalAudioStreams from '../../components/common/GlobalAudioStreams';
+import DirectMessagePanel from '../../components/dms/DirectMessagePanel'; // Import DM Panel
+import { useFriends } from '../../context/FriendsContext'; // Import useFriends
+import './AppLayout.css';
 
 const AppLayout = () => {
   const location = useLocation();
+  const { activeConversation } = useFriends();
   const isSettingsPage = location.pathname.startsWith('/settings');
 
   return (
@@ -17,11 +20,11 @@ const AppLayout = () => {
       <div className="main-content-with-friends">
         {isSettingsPage ? <SettingsPanel /> : <FriendsPanel />}
         <main className="main-content">
-          <Outlet />
+          {activeConversation ? <DirectMessagePanel /> : <Outlet />}
         </main>
       </div>
       <Footer />
-      <GlobalAudioStreams /> {/* Render GlobalAudioStreams here */}
+      <GlobalAudioStreams />
     </div>
   );
 };

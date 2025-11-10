@@ -1,12 +1,14 @@
 -- 사용자 정보 테이블
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,                 -- 사용자 고유 ID (자동 증가)
-    username VARCHAR(50) UNIQUE NOT NULL,  -- 사용자 닉네임 (고유해야 하며 필수)
+    username VARCHAR(50) NOT NULL,         -- 사용자 닉네임
+    tag VARCHAR(4) NOT NULL,               -- 사용자 고유 태그 (예: #0001)
     email VARCHAR(255) UNIQUE NOT NULL,    -- 사용자 이메일 (고유해야 하며 필수, 로그인 ID 역할)
     password_hash VARCHAR(255) NOT NULL,   -- 비밀번호 해시 값 (보안을 위해 암호화된 형태)
     profile_image_url VARCHAR(255),        -- 프로필 이미지 URL (선택 사항)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), -- 계정 생성 일시
-    last_seen_at TIMESTAMPTZ               -- 마지막 접속 일시 (선택 사항, 온라인 상태 표시 등에 활용)
+    last_seen_at TIMESTAMPTZ,              -- 마지막 접속 일시 (선택 사항, 온라인 상태 표시 등에 활용)
+    UNIQUE (username, tag)                 -- 닉네임과 태그 조합은 고유해야 함
 );
 
 -- 이메일 인증을 위한 임시 테이블
@@ -86,4 +88,14 @@ CREATE TABLE IF NOT EXISTS stt_transcriptions (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- 음성을 발화한 사용자 ID
     transcribed_text TEXT NOT NULL,        -- 변환된 텍스트 내용
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() -- 변환 기록 생성 일시
+);
+
+-- 1:1 다이렉트 메시지 테이블
+CREATE TABLE IF NOT EXISTS direct_messages (
+    id BIGSERIAL PRIMARY KEY,
+    sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -86,7 +86,7 @@ export const useWebSocketClient = (url) => {
     }, [url]); // connect function only depends on url
 
     useEffect(() => {
-        // Delay the initial connection attempt slightly to ensure Electron renderer is fully ready
+        // Delay the initial connection attempt slightly to ensure the Electron renderer is fully ready
         connect();
 
         return () => {
