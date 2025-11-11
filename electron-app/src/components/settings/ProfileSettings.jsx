@@ -17,7 +17,7 @@ const ProfileSettings = () => {
     
     const fullPreviewUrl = user?.profile_image_url 
         ? `http://localhost:3001${user.profile_image_url}`
-        : 'https://via.placeholder.com/80';
+        : null;
     const [previewUrl, setPreviewUrl] = useState(fullPreviewUrl);
 
     const handleImageChange = (e) => {
@@ -101,7 +101,11 @@ const ProfileSettings = () => {
             <h3>프로필 설정</h3>
 
             <div className="form-section profile-picture-section">
-                <img src={previewUrl} alt="Profile Preview" className="profile-picture-preview" />
+                {previewUrl ? (
+                    <img src={previewUrl} alt="Profile Preview" className="profile-picture-preview" />
+                ) : (
+                    <div className="profile-picture-placeholder">{user?.username.charAt(0)}</div>
+                )}
                 <div className="profile-picture-actions">
                     <label htmlFor="profile-image-upload">프로필 사진 변경</label>
                     <Input 

@@ -1,16 +1,26 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useAudioSettings } from '../context/AudioSettingsContext';
 import { NoiseSuppressorWorklet_Name } from "@timephy/rnnoise-wasm";
 import NoiseSuppressorWorklet from "@timephy/rnnoise-wasm/NoiseSuppressorWorklet?worker&url";
 
 export const useAudioProcessor = () => {
+    const { micVolume } = useAudioSettings();
     const [processedStream, setProcessedStream] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
     const audioContextRef = useRef(null);
     const rawStreamRef = useRef(null);
     const sourceNodeRef = useRef(null);
+    const gainNodeRef = useRef(null);
     const workletNodeRef = useRef(null);
     const destinationNodeRef = useRef(null);
+
+    // Effect to update gain node when micVolume changes
+    useEffect(() => {
+        if (gainNodeRef.current) {
+            gainNodeRef.current.gain.value = micVolume;
+        }
+    }, [micVolume]);
 
     const startProcessing = useCallback(async (rawStream) => {
         if (!rawStream || isProcessing) return;
@@ -27,14 +37,20 @@ export const useAudioProcessor = () => {
             
             // 2. Create audio processing pipeline
             const source = audioContextRef.current.createMediaStreamSource(rawStream);
-            const noiseSuppressionNode = new AudioWorkletNode(audioContextRef.current, NoiseSuppressorWorklet_Name);
+            const gainNode = audioContextRef.current.createGain();
+            gainNode.gain.value = micVolume; // Set initial volume
+            const noiseSuppressionNode = new AudioWorkletNode(audioContextRef.current, NoiseSuppressorWorklet_Name, {
+                channelCount: 1,
+                channelCountMode: 'explicit',
+            });
             const destination = audioContextRef.current.createMediaStreamDestination();
             
             // 3. Connect nodes
-            source.connect(noiseSuppressionNode).connect(destination);
+            source.connect(gainNode).connect(noiseSuppressionNode).connect(destination);
 
             // 4. Store nodes and stream for later cleanup
             sourceNodeRef.current = source;
+            gainNodeRef.current = gainNode;
             workletNodeRef.current = noiseSuppressionNode;
             destinationNodeRef.current = destination;
 
@@ -50,7 +66,7 @@ export const useAudioProcessor = () => {
             await stopProcessing();
             return null;
         }
-    }, [isProcessing]); // Removed stopProcessing from dependency array to break potential loop
+    }, [isProcessing, micVolume]); // Added micVolume to dependency array
 
     const stopProcessing = useCallback(async () => {
         if (!isProcessing && !rawStreamRef.current) return;
@@ -59,6 +75,7 @@ export const useAudioProcessor = () => {
 
         // Disconnect nodes
         sourceNodeRef.current?.disconnect();
+        gainNodeRef.current?.disconnect();
         workletNodeRef.current?.disconnect();
 
         // Stop all tracks of the original raw stream to release the microphone
@@ -75,6 +92,7 @@ export const useAudioProcessor = () => {
         // Reset refs and state
         rawStreamRef.current = null;
         sourceNodeRef.current = null;
+        gainNodeRef.current = null;
         workletNodeRef.current = null;
         destinationNodeRef.current = null;
         audioContextRef.current = null;

@@ -15,6 +15,7 @@ export function WebRTCProvider({ children }) {
     const { startProcessing, stopProcessing, processedStream: localStream } = useAudioProcessor();
     const [activeRoomId, setActiveRoomId] = useState(null);
     const [isGlobalMuted, setIsGlobalMuted] = useState(false); // New state for global mute
+    const [isMicActive, setIsMicActive] = useState(false);
 
     const { remoteStreams, cleanupConnections, setLocalAudioMuted } = useWebRTCManager({
         user,
@@ -26,6 +27,19 @@ export function WebRTCProvider({ children }) {
         setCurrentRoom,
     });
 
+    const activateLocalStream = useCallback(async () => {
+        if (localStream) return; // Already active
+        try {
+            const rawMicStream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            });
+            await startProcessing(rawMicStream);
+            setIsMicActive(true);
+        } catch (error) {
+            console.error('Error activating local stream:', error);
+        }
+    }, [localStream, startProcessing]);
+
     const leaveRoom = useCallback(async () => {
         if (!activeRoomId || !user) return;
 
@@ -33,6 +47,7 @@ export function WebRTCProvider({ children }) {
         
         cleanupConnections();
         await stopProcessing();
+        setIsMicActive(false);
 
         setActiveRoomId(null);
         setCurrentRoom(null);
@@ -53,17 +68,13 @@ export function WebRTCProvider({ children }) {
         }
 
         try {
-            const rawMicStream = await navigator.mediaDevices.getUserMedia({
-                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-            });
-            await startProcessing(rawMicStream);
-
+            await activateLocalStream();
             setActiveRoomId(newRoomId);
             sendMessage({ type: 'join-room', payload: { roomId: newRoomId, userId: user.id } });
         } catch (error) {
             console.error('Error joining room:', error);
         }
-    }, [user, activeRoomId, leaveRoom, startProcessing, sendMessage]);
+    }, [user, activeRoomId, leaveRoom, activateLocalStream, sendMessage]);
 
     const value = {
         joinRoom,
@@ -73,6 +84,8 @@ export function WebRTCProvider({ children }) {
         setLocalAudioMuted,
         isGlobalMuted,
         setIsGlobalMuted,
+        activateLocalStream,
+        isMicActive,
     };
 
     return (

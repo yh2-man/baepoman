@@ -52,6 +52,7 @@ async function handleGetRooms(ws, payload, wss, rooms) {
 
         const liveRooms = dbRooms.map(room => ({
             ...room,
+            categoryImageUrl: room.categoryImageUrl ? `http://localhost:3001${room.categoryImageUrl}` : null,
             participantCount: rooms.get(room.id)?.size || 0,
         }));
 
@@ -98,7 +99,7 @@ async function handleCreateRoom(ws, payload, wss, rooms) {
             ...newRoom,
             hostName,
             categoryName,
-            categoryImageUrl,
+            categoryImageUrl: categoryImageUrl ? `http://localhost:3001${categoryImageUrl}` : null,
             participantCount: 0 // Starts with 0, will be 1 after join
         };
 
@@ -197,7 +198,7 @@ async function handleJoinRoom(ws, payload, wss, rooms) { // Add wss
                 roomType: dbRoom.roomType,
                 isPrivate: dbRoom.isPrivate,
                 categoryName: dbRoom.categoryName,
-                categoryImageUrl: dbRoom.categoryImageUrl,
+                categoryImageUrl: dbRoom.categoryImageUrl ? `http://localhost:3001${dbRoom.categoryImageUrl}` : null,
                 hostId: dbRoom.hostId,
                 maxParticipants: dbRoom.maxParticipants,
             },
@@ -342,7 +343,7 @@ async function handleChatMessage(ws, payload, wss, rooms) {
                         roomId,
                         userId,
                         username: sender.username,
-                        profile_image_url: sender.profile_image_url,
+                        profile_image_url: sender.profile_image_url ? `http://localhost:3001${sender.profile_image_url}` : null,
                         content,
                         timestamp,
                         isEdited,
@@ -425,7 +426,10 @@ async function handleGetChatHistory(ws, payload) {
         queryParams.push(limit);
 
         const result = await db.query(query, queryParams);
-        const chatHistory = result.rows.reverse(); // Reverse to get oldest first
+        const chatHistory = result.rows.map(row => ({
+            ...row,
+            profileImageUrl: row.profileImageUrl ? `http://localhost:3001${row.profileImageUrl}` : null,
+        })).reverse(); // Reverse to get oldest first
 
         send(ws, 'chat-history', { roomId, messages: chatHistory });
 

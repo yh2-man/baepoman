@@ -5,6 +5,7 @@ import Footer from '../../components/common/Footer';
 import FriendsPanel from '../../components/friends/FriendsPanel';
 import SettingsPanel from '../../components/settings/SettingsPanel';
 import GlobalAudioStreams from '../../components/common/GlobalAudioStreams';
+import MicLoopbackPlayer from '../../components/common/MicLoopbackPlayer';
 import DirectMessagePanel from '../../components/dms/DirectMessagePanel'; // Import DM Panel
 import { useFriends } from '../../context/FriendsContext'; // Import useFriends
 import './AppLayout.css';
@@ -25,6 +26,7 @@ const AppLayout = () => {
       </div>
       <Footer />
       <GlobalAudioStreams />
+      <MicLoopbackPlayer />
     </div>
   );
 };

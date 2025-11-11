@@ -29,6 +29,20 @@
     border: 2px solid var(--border-color);
 }
 
+.profile-picture-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: var(--primary-color); /* Or any suitable background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    color: var(--text-color-on-primary); /* Text color for contrast */
+    font-weight: bold;
+    border: 2px solid var(--border-color);
+}
+
 .profile-picture-actions label {
     display: block;
     margin-bottom: 0.5rem;

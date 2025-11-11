@@ -14,7 +14,7 @@ const MyProfileCard = () => {
   if (!user) return null;
 
   const avatarUrl = (typeof user.profile_image_url === 'string' && user.profile_image_url)
-    ? `http://localhost:8080${user.profile_image_url}` // Port updated to 8080
+    ? `http://localhost:3001${user.profile_image_url}` // Port updated to 3001
     : null;
 
   return (
