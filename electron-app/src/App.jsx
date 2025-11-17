@@ -9,6 +9,8 @@ import { ConfirmationProvider } from './context/ConfirmationContext';
 import { WebRTCProvider } from './context/WebRTCContext';
 import { AudioSettingsProvider } from './context/AudioSettingsContext';
 import { FriendsProvider } from './context/FriendsContext'; // Import FriendsProvider
+import { ThemeProvider } from './context/ThemeContext';
+import { VoiceSubtitleProvider } from './context/VoiceSubtitleContext';
 import NotificationDisplay from './components/common/NotificationDisplay';
 import AuthLayout from './pages/layouts/AuthLayout';
 import AppLayout from './pages/layouts/AppLayout'; // Import AppLayout
@@ -22,6 +24,7 @@ import RoomPage from './pages/room/RoomPage'; // Import RoomPage
 import SettingsPage from './pages/settings/SettingsPage';
 import ProfileSettings from './components/settings/ProfileSettings';
 import AudioSettings from './components/settings/AudioSettings';
+import ThemeSettings from './components/settings/ThemeSettings';
 
 // Removed MainLayout component definition
 
@@ -47,40 +50,45 @@ function App() {
         {/* 3. NotificationProvider가 알림 기능을 제공합니다. */}
                   <NotificationProvider>
                     <ConfirmationProvider>
-                      <NotificationDisplay /> {/* Render NotificationDisplay here */}
-                    {/* 4. AuthProvider가 인증이 필요한 모든 것을 감쌉니다. */}
-                    <AuthProvider>
-                      <AudioSettingsProvider>
-                        <WebRTCProvider>
-                          <ProfileProvider>
-                            <FriendsProvider>
-                              {/* 5. Routes가 실제 페이지 경로를 정의합니다. */}
-                              <Routes>              {/* Protected routes */}
-                                <Route element={<ProtectedRoute />}>
-                                  <Route element={<AppLayout />}> {/* Use AppLayout here */}
-                                    <Route path="/lobby" element={<LobbyPage />} />
-                                    <Route path="/room/:roomId" element={<RoomPage />} />
-                                                                      <Route path="/settings" element={<SettingsPage />}>
-                                                                        <Route index element={<Navigate to="profile" replace />} />
-                                                                        <Route path="profile" element={<ProfileSettings />} />
-                                                                        <Route path="audio" element={<AudioSettings />} />
-                                                                      </Route>                                  </Route>
-                                </Route>
+                      <ThemeProvider>
+                        <NotificationDisplay /> {/* Render NotificationDisplay here */}
+                      {/* 4. AuthProvider가 인증이 필요한 모든 것을 감쌉니다. */}
+                      <AuthProvider>
+                        <AudioSettingsProvider>
+                          <WebRTCProvider>
+                            <ProfileProvider>
+                              <FriendsProvider>
+                                <VoiceSubtitleProvider>
+                                  {/* 5. Routes가 실제 페이지 경로를 정의합니다. */}
+                                  <Routes>              {/* Protected routes */}
+                                    <Route element={<ProtectedRoute />}>
+                                      <Route element={<AppLayout />}> {/* Use AppLayout here */}
+                                        <Route path="/lobby" element={<LobbyPage />} />
+                                        <Route path="/room/:roomId" element={<RoomPage />} />
+                                                                          <Route path="/settings" element={<SettingsPage />}>
+                                                                            <Route index element={<Navigate to="profile" replace />} />
+                                                                            <Route path="profile" element={<ProfileSettings />} />
+                                                                            <Route path="audio" element={<AudioSettings />} />
+                                                                            <Route path="theme" element={<ThemeSettings />} />
+                                                                          </Route>                                  </Route>
+                                    </Route>
 
-                                {/* Auth routes */}
-                                <Route element={<AuthRoutes />}>
-                                  <Route path="/login" element={<LoginPage />} />
-                                  <Route path="/signup" element={<SignupPage />} />
-                                </Route>
+                                    {/* Auth routes */}
+                                    <Route element={<AuthRoutes />}>
+                                      <Route path="/login" element={<LoginPage />} />
+                                      <Route path="/signup" element={<SignupPage />} />
+                                    </Route>
 
-                                {/* Redirect any unmatched routes to /login */}
-                                <Route path="*" element={<Navigate to="/login" replace />} />
-                              </Routes>
-                            </FriendsProvider>
-                          </ProfileProvider>
-                        </WebRTCProvider>
-                      </AudioSettingsProvider>
-          </AuthProvider>
+                                    {/* Redirect any unmatched routes to /login */}
+                                    <Route path="*" element={<Navigate to="/login" replace />} />
+                                  </Routes>
+                                </VoiceSubtitleProvider>
+                              </FriendsProvider>
+                            </ProfileProvider>
+                          </WebRTCProvider>
+                        </AudioSettingsProvider>
+            </AuthProvider>
+                      </ThemeProvider>
                     </ConfirmationProvider>
         </NotificationProvider>
       </BrowserRouter>

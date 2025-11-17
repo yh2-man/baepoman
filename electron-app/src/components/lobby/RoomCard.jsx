@@ -1,13 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../../context/NotificationContext';
 import './RoomCard.css';
 // import { getCategoryImage } from '../../constants/categories'; // Removed
 
 const RoomCard = ({ room }) => {
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
   // const backgroundImage = getCategoryImage(room.category); // Removed
 
   const handleJoinRoom = () => {
+    if (room.participantCount >= room.maxParticipants) {
+      addNotification('방 인원이 가득 차서 입장할 수 없습니다.', 'error');
+      return;
+    }
     navigate(`/room/${room.roomId}`);
   };
 

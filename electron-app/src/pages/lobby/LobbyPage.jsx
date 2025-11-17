@@ -43,7 +43,10 @@ const LobbyPage = () => {
     };
 
     const handleRoomCreated = (newRoom) => {
-      // Only add group rooms to the lobby list
+      // Only add group rooms to the lobby list and filter out private rooms
+      if (newRoom.isPrivate) {
+        return;
+      }
       if (newRoom.roomType === 'group') {
         const formattedNewRoom = {
           ...newRoom,
@@ -143,6 +146,9 @@ const LobbyPage = () => {
 
   // Update filtering logic for autocomplete
   const filteredRooms = rooms.filter(room => {
+    if (room.isPrivate) {
+      return false; // Always hide private rooms
+    }
     const nameMatch = room.roomName.toLowerCase().includes(roomNameFilter.toLowerCase());
     
     const categoryMatch = categoryFilter === allCategoriesLabel || 

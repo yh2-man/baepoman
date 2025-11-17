@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useWebRTC } from '../../context/WebRTCContext';
-import useVoiceActivity from '../../hooks/useVoiceActivity';
+import { useVoiceSubtitle } from '../../context/VoiceSubtitleContext';
+import VoiceSubtitleChat from '../../components/room/VoiceSubtitleChat';
 import RoomHeaderCard from '../../components/room/RoomHeaderCard';
-import ChatPanel from '../../components/room/ChatPanel';
 import Button from '../../components/common/Button';
-import GlobalAudioStreams from '../../components/common/GlobalAudioStreams';
+import ChatPanel from '../../components/room/ChatPanel';
 import './RoomPage.css';
 
 // Updated component to work with the new participants object structure
@@ -42,6 +42,7 @@ const RoomPage = () => {
   
   // Data now comes from useWebRTC, which has the unified state
   const { joinRoom, leaveRoom, participants, setLocalAudioMuted, isGlobalMuted, setIsGlobalMuted, isLocalUserSpeaking } = useWebRTC();
+  const { showVoiceSubtitleChat, toggleVoiceSubtitleChat } = useVoiceSubtitle();
 
   const [chatMessages, setChatMessages] = useState([]);
   const [isMuted, setIsMuted] = useState(false);
@@ -133,40 +134,46 @@ const RoomPage = () => {
         title={currentRoom.name} 
         onHangUp={handleLeaveRoom} 
       />
-      <div className="room-main-content">
-        <div className="participants-grid">
-          {/* Local User */}
-          <div className={`participant-card ${isLocalUserSpeaking && !isMuted ? 'speaking' : ''}`}>
-            <div className="profile-avatar">
-              {localUserAvatarUrl ? (
-                <img src={localUserAvatarUrl} alt={user.username} className="avatar-img" />
-              ) : (
-                <div className="avatar-placeholder">{user.username.charAt(0)}</div>
-              )}
-              {isMuted && <div className="mute-indicator">🔇</div>}
+      <div className="room-body-layout">
+        <div className="room-main-content">
+          <div className="participants-grid">
+            {/* Local User */}
+            <div className={`participant-card ${isLocalUserSpeaking && !isMuted ? 'speaking' : ''}`}>
+              <div className="profile-avatar">
+                {localUserAvatarUrl ? (
+                  <img src={localUserAvatarUrl} alt={user.username} className="avatar-img" />
+                ) : (
+                  <div className="avatar-placeholder">{user.username.charAt(0)}</div>
+                )}
+                {isMuted && <div className="mute-indicator">🔇</div>}
+              </div>
+              <div className="username-display">{user?.username} (Me)</div>
             </div>
-            <div className="username-display">{user?.username} (Me)</div>
-          </div>
 
-          {/* Remote Participants from the unified state */}
-          {Object.values(participants)
-            .filter(p => p.user) // Filter out participants without user info
-            .map(p => (
-              <ParticipantMedia 
-                key={p.user.id} 
-                participant={p} 
-              />
-            ))}
+            {/* Remote Participants from the unified state */}
+            {Object.values(participants)
+              .filter(p => p.user) // Filter out participants without user info
+              .map(p => (
+                <ParticipantMedia 
+                  key={p.user.id} 
+                  participant={p} 
+                />
+              ))}
+          </div>
+          <div className="call-controls-bar">
+            <Button onClick={handleToggleMute} size="small">
+              {isMuted ? '음소거 해제' : '음소거'}
+            </Button>
+            <Button onClick={() => setIsGlobalMuted(!isGlobalMuted)} size="small">
+              {isGlobalMuted ? '모든 소리 켜기' : '모든 소리 끄기'}
+            </Button>
+            <Button onClick={toggleVoiceSubtitleChat} size="small">
+              {showVoiceSubtitleChat ? '자막 숨기기' : '자막 보이기'}
+            </Button>
+          </div>
+          <ChatPanel roomId={roomId} messages={chatMessages} onSendMessage={handleSendMessage} onDeleteMessage={handleDeleteMessage} />
         </div>
-        <div className="call-controls-bar">
-          <Button onClick={handleToggleMute} size="small">
-            {isMuted ? '음소거 해제' : '음소거'}
-          </Button>
-          <Button onClick={() => setIsGlobalMuted(!isGlobalMuted)} size="small">
-            {isGlobalMuted ? '모든 소리 켜기' : '모든 소리 끄기'}
-          </Button>
-        </div>
-        <ChatPanel roomId={roomId} messages={chatMessages} onSendMessage={handleSendMessage} onDeleteMessage={handleDeleteMessage} />
+        {showVoiceSubtitleChat && <VoiceSubtitleChat />}
       </div>
     </div>
   );

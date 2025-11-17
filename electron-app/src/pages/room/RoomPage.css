@@ -47,6 +47,12 @@
   overflow: hidden; /* Hide overflow if content exceeds this area */
 }
 
+.room-body-layout {
+  display: flex;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
 .participants-grid {
   display: flex; /* Changed from grid to flex */
   flex-wrap: wrap; /* Allow items to wrap */

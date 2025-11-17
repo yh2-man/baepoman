@@ -1,0 +1,27 @@
+.voice-subtitle-chat {
+    flex: 0 0 33.33%; /* 1/3 of the screen width */
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    background-color: var(--surface-color);
+    border-left: 1px solid var(--background-tertiary);
+    box-shadow: none; /* Remove box-shadow as it's now part of the main layout */
+    border-radius: 0; /* Remove border-radius as it's now part of the main layout */
+    z-index: auto; /* Reset z-index */
+}
+
+.voice-subtitle-chat h3 {
+    margin-top: 0;
+    color: var(--text-color);
+    font-size: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.voice-subtitle-chat .subtitle-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    color: var(--text-color-light);
+    font-size: 0.9rem;
+}

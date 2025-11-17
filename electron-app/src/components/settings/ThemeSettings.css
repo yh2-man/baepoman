@@ -1,0 +1,21 @@
+.theme-settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.theme-settings-container h2 {
+  margin: 0;
+  color: var(--text-color);
+}
+
+.theme-settings-container p {
+  margin: 0;
+  color: var(--text-secondary-color);
+}
+
+.theme-options {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}

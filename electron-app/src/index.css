@@ -1,3 +1,4 @@
+@import './theme.css';
 @import './pages/lobby/LobbyPage.css';
 
 /* theme.css에서 정의된 변수를 사용하는 전역 스타일 */

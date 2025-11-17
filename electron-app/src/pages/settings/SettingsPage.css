@@ -1,5 +1,52 @@
 .settings-page-layout {
-  padding: 0;
+  display: flex;
   height: 100%;
-  overflow-y: auto; /* Add scroll for content that might overflow */
+  overflow: hidden; /* Prevent double scrollbars */
+}
+
+.settings-sidebar {
+  flex: 0 0 200px; /* Fixed width for the sidebar */
+  background-color: var(--surface-color);
+  padding: 20px 10px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--background-tertiary);
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.nav-link {
+  padding: 10px 15px;
+  border-radius: 5px;
+  color: var(--text-secondary-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.nav-link:hover {
+  background-color: var(--background-tertiary);
+  color: var(--text-color);
+}
+
+.nav-link.active {
+  background-color: var(--primary-color);
+  color: var(--text-color-inverted, #fff); /* Use inverted text color or default to white */
+}
+
+.logout-section {
+  margin-top: auto; /* Pushes the logout button to the bottom */
+  padding-top: 20px;
+  border-top: 1px solid var(--background-tertiary);
+}
+
+.settings-content {
+  flex-grow: 1;
+  padding: 20px;
+  overflow-y: auto; /* Allow content to scroll if it overflows */
 }
