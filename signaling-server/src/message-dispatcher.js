@@ -23,6 +23,7 @@ const {
     handleRemoveFriend,
     handleGetFriendsList,
     handleDirectMessage,
+    handleGetDmHistory,
 } = require('./handlers/friend-handlers.js');
 
 const messageHandlers = {
@@ -43,6 +44,7 @@ const messageHandlers = {
     'decline-friend-request': authenticateToken(handleDeclineFriendRequest),
     'remove-friend': authenticateToken(handleRemoveFriend),
     'direct-message': authenticateToken(handleDirectMessage),
+    'get-dm-history': authenticateToken(handleGetDmHistory),
 
     // Rooms
     'get-rooms': authenticateToken(handleGetRooms),
@@ -81,7 +83,7 @@ function dispatchMessage(ws, message, wss, rooms, userRoomMap) {
         const webrtcSignalTypes = ['offer', 'answer', 'ice-candidate', 'stream-id-map'];
         const payloadExpectedHandlers = [
             'login', 'signup', 'update-profile', 'verify-email', 'get-user-profile',
-            'friend-request', 'get-friends-list', 'accept-friend-request', 'decline-friend-request', 'remove-friend', 'direct-message',
+            'friend-request', 'get-friends-list', 'accept-friend-request', 'decline-friend-request', 'remove-friend', 'direct-message', 'get-dm-history',
             'get-rooms', 'create-room', 'join-room', 'leave-room', 'chat-message', 'get-chat-history', 'delete-message', 'get-categories',
             'reauthenticate'
         ];

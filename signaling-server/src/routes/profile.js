@@ -69,7 +69,14 @@ router.get('/me', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'User not found.' });
         }
 
-        res.json(result.rows[0]);
+        const user = result.rows[0];
+        
+        // Ensure the profile image URL is absolute
+        if (user.profile_image_url) {
+            user.profile_image_url = `http://localhost:3001${user.profile_image_url}`;
+        }
+
+        res.json(user);
 
     } catch (error) {
         console.error('Error fetching user profile:', error);

@@ -1,6 +1,12 @@
 @import './theme.css';
 @import './pages/lobby/LobbyPage.css';
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* theme.css에서 정의된 변수를 사용하는 전역 스타일 */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;

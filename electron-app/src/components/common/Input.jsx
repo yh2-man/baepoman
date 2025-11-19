@@ -28,6 +28,22 @@ const StyledInput = styled.input`
         outline: none;
         border-color: var(--primary-color);
     }
+
+    /* Style the button part of the file input */
+    &::file-selector-button {
+      background-color: var(--primary-color);
+      color: var(--text-color-inverted);
+      border: none;
+      padding: 8px 12px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      margin-right: 16px;
+      transition: background-color 0.2s;
+    }
+
+    &::file-selector-button:hover {
+      background-color: var(--primary-hover-color);
+    }
 `;
 
 function Input({ label, type = 'text', placeholder, value, onChange, width, height }) {

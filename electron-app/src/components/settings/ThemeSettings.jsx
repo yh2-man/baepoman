@@ -1,14 +1,13 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import Button from '../common/Button';
-import Card from '../common/Card';
 import './ThemeSettings.css'; // We'll create this file for specific styling
 
 const ThemeSettings = () => {
   const { theme, changeTheme } = useTheme();
 
   return (
-    <Card>
+    <div className="theme-settings-panel">
       <div className="theme-settings-container">
         <h2>테마 설정</h2>
         <p>앱의 전체적인 모양과 느낌을 변경합니다.</p>
@@ -27,7 +26,7 @@ const ThemeSettings = () => {
           </Button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 

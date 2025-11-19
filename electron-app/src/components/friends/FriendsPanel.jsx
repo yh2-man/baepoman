@@ -5,27 +5,18 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import FriendCard from './FriendCard';
 import AddFriendModal from './AddFriendModal';
+import ProfileAvatar from '../common/ProfileAvatar'; // Import the new component
 import './FriendsPanel.css';
 
-// MyProfileCard component to clearly separate logic
-const MyProfileCard = () => {
+// A simpler component for the current user's profile display
+const MyProfile = () => {
   const { user } = useAuth();
 
   if (!user) return null;
 
-  const avatarUrl = (typeof user.profile_image_url === 'string' && user.profile_image_url)
-    ? `http://localhost:3001${user.profile_image_url}` // Port updated to 3001
-    : null;
-
   return (
     <div className="friend-card">
-      <div className="friend-avatar">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={user.username} className="friend-avatar-img" />
-        ) : (
-          <div className="avatar-placeholder">{user.username.charAt(0)}</div>
-        )}
-      </div>
+      <ProfileAvatar user={user} />
       <div className="friend-info">
         <span className="friend-name">{user.username}</span>
         <span className="friend-tag">#{user.tag}</span>
@@ -38,6 +29,7 @@ const FriendsPanel = () => {
   const [filter, setFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { friends, pendingRequests } = useFriends();
+  const { user } = useAuth(); // Get user for the key
 
   const filteredFriends = friends.filter(friend => 
     friend.username.toLowerCase().includes(filter.toLowerCase())
@@ -46,7 +38,8 @@ const FriendsPanel = () => {
   return (
     <aside className="friends-panel">
       <div className="my-profile-section">
-        <MyProfileCard />
+        {/* Use the new simplified component */}
+        <MyProfile />
       </div>
 
       <div className="friends-list-section custom-scrollbar">

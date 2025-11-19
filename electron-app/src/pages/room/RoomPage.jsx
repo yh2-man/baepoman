@@ -7,29 +7,20 @@ import VoiceSubtitleChat from '../../components/room/VoiceSubtitleChat';
 import RoomHeaderCard from '../../components/room/RoomHeaderCard';
 import Button from '../../components/common/Button';
 import ChatPanel from '../../components/room/ChatPanel';
+import ProfileAvatar from '../../components/common/ProfileAvatar'; // Import the new component
 import './RoomPage.css';
 
-// Updated component to work with the new participants object structure
+// Updated component to use ProfileAvatar
 const ParticipantMedia = ({ participant }) => {
-  const { user, stream, isMuted, isSpeaking } = participant;
+  const { user, isMuted, isSpeaking } = participant;
 
-  // This check is crucial because the user object might not be available instantly
   if (!user) {
-    return null; // Or a placeholder
+    return null;
   }
-
-  const avatarUrl = user.profile_image_url || null;
 
   return (
     <div className={`participant-card ${isSpeaking && !isMuted ? 'speaking' : ''}`}>
-      <div className="profile-avatar">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={user.username} className="avatar-img" />
-        ) : (
-          <div className="avatar-placeholder">{user.username.charAt(0)}</div>
-        )}
-        {isMuted && <div className="mute-indicator">🔇</div>}
-      </div>
+      <ProfileAvatar user={user} size="large" isMuted={isMuted} />
       <div className="username-display">{user.username}</div>
     </div>
   );
@@ -40,28 +31,24 @@ const RoomPage = () => {
   const navigate = useNavigate();
   const { user, currentRoom, loading, sendMessage, addMessageListener, removeMessageListener } = useAuth();
   
-  // Data now comes from useWebRTC, which has the unified state
   const { joinRoom, leaveRoom, participants, setLocalAudioMuted, isGlobalMuted, setIsGlobalMuted, isLocalUserSpeaking } = useWebRTC();
   const { showVoiceSubtitleChat, toggleVoiceSubtitleChat } = useVoiceSubtitle();
 
   const [chatMessages, setChatMessages] = useState([]);
   const [isMuted, setIsMuted] = useState(false);
   
-  // Effect to join the room, now aware of auth loading state
   useEffect(() => {
     if (loading) {
-      return; // Wait for authentication to complete
+      return;
     }
     if (user && roomId) {
       joinRoom(roomId);
     } else {
-      // If auth is done and there's still no user, redirect.
       navigate('/lobby');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, roomId, loading, navigate]);
 
-  // Effect for chat, mostly unchanged
   useEffect(() => {
     if (loading || !user || !roomId) return;
 
@@ -120,13 +107,14 @@ const RoomPage = () => {
     });
   };
 
+  const handleInviteFriend = () => {
+    console.log('친구 초대 버튼 클릭됨!');
+    // TODO: Implement friend invitation logic (e.g., open a modal)
+  };
+
   if (!currentRoom) {
     return <div className="room-page-layout">Joining room...</div>;
   }
-
-  const localUserAvatarUrl = user?.profile_image_url
-    ? `http://localhost:3001${user.profile_image_url}`
-    : null;
 
   return (
     <div className="room-content-wrapper">
@@ -139,14 +127,7 @@ const RoomPage = () => {
           <div className="participants-grid">
             {/* Local User */}
             <div className={`participant-card ${isLocalUserSpeaking && !isMuted ? 'speaking' : ''}`}>
-              <div className="profile-avatar">
-                {localUserAvatarUrl ? (
-                  <img src={localUserAvatarUrl} alt={user.username} className="avatar-img" />
-                ) : (
-                  <div className="avatar-placeholder">{user.username.charAt(0)}</div>
-                )}
-                {isMuted && <div className="mute-indicator">🔇</div>}
-              </div>
+              <ProfileAvatar user={user} size="large" isMuted={isMuted} />
               <div className="username-display">{user?.username} (Me)</div>
             </div>
 
@@ -161,6 +142,9 @@ const RoomPage = () => {
               ))}
           </div>
           <div className="call-controls-bar">
+            <Button onClick={handleInviteFriend} size="small">
+              친구 초대
+            </Button>
             <Button onClick={handleToggleMute} size="small">
               {isMuted ? '음소거 해제' : '음소거'}
             </Button>

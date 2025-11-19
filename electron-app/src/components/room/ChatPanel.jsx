@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useProfiles } from '../../context/ProfileContext';
 import Input from '../common/Input';
 import Button from '../common/Button';
+import ProfileAvatar from '../common/ProfileAvatar';
 import './ChatPanel.css';
 
 const ChatPanel = ({ roomId, messages, onSendMessage, onDeleteMessage }) => {
@@ -27,10 +28,7 @@ const ChatPanel = ({ roomId, messages, onSendMessage, onDeleteMessage }) => {
     const renderMessage = (msg) => {
         const isMyMessage = msg.userId === user.id;
         const profile = profiles[msg.userId];
-        const avatarUrl = profile?.profile_image_url
-            ? `http://localhost:3001${profile.profile_image_url}`
-            : null;
-
+        
         // If message is soft-deleted, render a placeholder
         if (msg.deletedAt) {
             return (
@@ -42,24 +40,36 @@ const ChatPanel = ({ roomId, messages, onSendMessage, onDeleteMessage }) => {
             );
         }
 
+        if (isMyMessage) {
+            return (
+                <div key={msg.id} className="chat-message my-message">
+                    <div className="message-content">
+                        <div className="message-header">
+                             <button onClick={() => onDeleteMessage(msg.id)} className="delete-message-btn">
+                                삭제
+                            </button>
+                            <div className="message-avatar">
+                                <ProfileAvatar user={user} size="small" />
+                            </div>
+                            <span className="message-username">{user.username}</span>
+                            <span className="message-timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                        <div className="message-text">{msg.content}</div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render for other users
         return (
-            <div key={msg.id} className={`chat-message ${isMyMessage ? 'my-message' : 'other-message'}`}>
+            <div key={msg.id} className="chat-message other-message">
                 <div className="message-avatar">
-                    {avatarUrl ? (
-                        <img src={avatarUrl} alt={msg.username} className="avatar-img" />
-                    ) : (
-                        <div className="avatar-placeholder">{msg.username.charAt(0)}</div>
-                    )}
+                    <ProfileAvatar user={profile} size="small" />
                 </div>
                 <div className="message-content">
                     <div className="message-header">
                         <span className="message-username">{msg.username}</span>
                         <span className="message-timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                        {isMyMessage && (
-                            <button onClick={() => onDeleteMessage(msg.id)} className="delete-message-btn">
-                                삭제
-                            </button>
-                        )}
                     </div>
                     <div className="message-text">{msg.content}</div>
                 </div>

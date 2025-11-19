@@ -28,6 +28,19 @@ code {
   --warning-color: #ff9800; /* 경고 메시지 색상 */
   --info-color: #2196F3;    /* 정보 메시지 색상 */
   --border-radius: 8px; /* Added for rounded corners */
+  --text-color-inverted: #212121; /* For text on primary-colored backgrounds */
+
+  /* RGB versions for RGBA usage */
+  --background-color-rgb: 54, 57, 63;
+  --surface-color-rgb: 64, 68, 75;
+  --background-tertiary-rgb: 47, 49, 54;
+
+  /* Room Card Specific Variables - Dark Theme */
+  --room-card-overlay-gradient-start-color: rgba(var(--surface-color-rgb), 0.8);
+  --room-card-overlay-gradient-end-color: rgba(var(--surface-color-rgb), 0.8);
+  --room-card-text-color: white;
+  --room-card-text-shadow-color: rgba(0,0,0,0.7);
+  --room-card-participants-bg: rgba(var(--surface-color-rgb), 0.5);
 }
 
 /* Light Theme */
@@ -45,6 +58,19 @@ code {
   --warning-color: #ff9800; /* 경고 메시지 색상 */
   --info-color: #2196F3;    /* 정보 메시지 색상 */
   --border-radius: 8px; /* Added for rounded corners */
+  --text-color-inverted: #ffffff; /* For text on primary-colored backgrounds */
+
+  /* RGB versions for RGBA usage */
+  --background-color-rgb: 255, 255, 255;
+  --surface-color-rgb: 245, 245, 245;
+  --background-tertiary-rgb: 224, 224, 224;
+
+  /* Room Card Specific Variables - Light Theme */
+  --room-card-overlay-gradient-start-color: rgba(var(--background-tertiary-rgb), 0.8);
+  --room-card-overlay-gradient-end-color: rgba(var(--background-tertiary-rgb), 0.8);
+  --room-card-text-color: black;
+  --room-card-text-shadow-color: rgba(255,255,255,0.7);
+  --room-card-participants-bg: rgba(var(--background-tertiary-rgb), 0.5);
 }
 
 /* Apply theme variables to body */

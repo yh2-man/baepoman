@@ -96,7 +96,7 @@ async function handleLogin(ws, { email, password }) {
                     username: user.username,
                     tag: user.tag,
                     email: user.email,
-                    profile_image_url: user.profile_image_url,
+                    profile_image_url: user.profile_image_url ? `http://localhost:3001${user.profile_image_url}` : null,
                     last_seen_at: new Date().toISOString()
                 },
                 token: token

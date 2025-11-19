@@ -21,6 +21,19 @@ export const FriendsProvider = ({ children }) => {
         activeConversationRef.current = activeConversation;
     }, [activeConversation]);
 
+    const getDmHistory = useCallback((friendId) => {
+        if (isConnected) {
+            sendMessage({ type: 'get-dm-history', payload: { friendId } });
+        }
+    }, [isConnected, sendMessage]);
+
+    const setActiveConversationAndFetchHistory = useCallback((friendId) => {
+        setActiveConversation(friendId);
+        if (friendId) {
+            getDmHistory(friendId);
+        }
+    }, [getDmHistory]);
+
     useEffect(() => {
         if (!isConnected || !user) return;
 
@@ -85,6 +98,14 @@ export const FriendsProvider = ({ children }) => {
             }));
         };
 
+        const handleDmHistorySuccess = (data) => {
+            const { friendId, messages } = data;
+            setDirectMessages(prev => ({
+                ...prev,
+                [friendId]: messages,
+            }));
+        };
+
         const listeners = {
             'friends-list-success': handleFriendsList,
             'friend-update': handleFriendUpdate,
@@ -92,6 +113,7 @@ export const FriendsProvider = ({ children }) => {
             'friend-request-received': handleFriendRequestReceived,
             'direct-message-received': handleDirectMessageReceived,
             'direct-message-sent': handleDirectMessageSent,
+            'dm-history-success': handleDmHistorySuccess,
         };
 
         Object.entries(listeners).forEach(([type, handler]) => addMessageListener(type, handler));
@@ -121,7 +143,7 @@ export const FriendsProvider = ({ children }) => {
         directMessages,
         unreadMessages,
         activeConversation,
-        setActiveConversation,
+        setActiveConversation: setActiveConversationAndFetchHistory,
         sendFriendRequest,
         acceptFriendRequest,
         declineFriendRequest,

@@ -8,6 +8,21 @@
     min-height: 0; /* Allow the flex item to shrink */
 }
 
+/* Header for Direct Message Panel */
+.dm-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--background-tertiary);
+    flex-shrink: 0;
+}
+
+.dm-header-username {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -86,7 +101,7 @@
 }
 
 .chat-message.my-message .message-header {
-    flex-direction: row-reverse; /* Reverse order for my messages */
+    justify-content: flex-end; /* Align items to the right */
 }
 
 .message-username {
@@ -111,7 +126,7 @@
 
 .chat-message.my-message .message-text {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-color-inverted);
 }
 
 .chat-input-form {

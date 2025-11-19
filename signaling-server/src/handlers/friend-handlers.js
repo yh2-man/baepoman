@@ -60,12 +60,12 @@ async function handleGetFriendsList(ws) {
                 id: row.user_id_2,
                 username: row.username2,
                 tag: row.tag2,
-                profile_image_url: row.profile_image_url2,
+                profile_image_url: row.profile_image_url2 ? `http://localhost:3001${row.profile_image_url2}` : null,
             } : {
                 id: row.user_id_1,
                 username: row.username1,
                 tag: row.tag1,
-                profile_image_url: row.profile_image_url1,
+                profile_image_url: row.profile_image_url1 ? `http://localhost:3001${row.profile_image_url1}` : null,
             };
 
             switch (row.status) {
@@ -168,11 +168,14 @@ async function handleFriendRequest(ws, { fullTag }, wss) {
         const targetSocket = findUserConnection(wss, targetUser.id);
         if (targetSocket) {
             const { rows: requesterDetails } = await db.query('SELECT username, tag, profile_image_url FROM users WHERE id = $1', [requesterId]);
+            const requester = requesterDetails[0];
             targetSocket.send(JSON.stringify({
                 type: 'friend-request-received',
                 payload: {
                     id: requesterId,
-                    ...requesterDetails[0]
+                    username: requester.username,
+                    tag: requester.tag,
+                    profile_image_url: requester.profile_image_url ? `http://localhost:3001${requester.profile_image_url}` : null,
                 }
             }));
         }
@@ -222,18 +225,28 @@ async function handleAcceptFriendRequest(ws, { requesterId }, wss) {
         
         const requesterSocket = findUserConnection(wss, requesterId);
         
+        const accepterUserObject = {
+            ...accepterDetails[0],
+            profile_image_url: accepterDetails[0].profile_image_url ? `http://localhost:3001${accepterDetails[0].profile_image_url}` : null,
+        };
+
+        const requesterUserObject = {
+            ...requesterDetails[0],
+            profile_image_url: requesterDetails[0].profile_image_url ? `http://localhost:3001${requesterDetails[0].profile_image_url}` : null,
+        };
+
         // Notify original requester
         if (requesterSocket) {
             requesterSocket.send(JSON.stringify({
                 type: 'friend-update',
-                payload: { status: 'accepted', user: accepterDetails[0] }
+                payload: { status: 'accepted', user: accepterUserObject }
             }));
         }
 
         // Notify accepter (the current user)
         ws.send(JSON.stringify({
             type: 'friend-update',
-            payload: { status: 'accepted', user: requesterDetails[0] }
+            payload: { status: 'accepted', user: requesterUserObject }
         }));
 
     } catch (error) {
@@ -379,6 +392,38 @@ async function handleDirectMessage(ws, { receiverId, content }, wss) {
     }
 }
 
+async function handleGetDmHistory(ws, { friendId }) {
+    const userId = ws.userId;
+    if (!userId || !friendId) {
+        return ws.send(JSON.stringify({ type: 'dm-history-failure', payload: { message: 'Invalid request for DM history.' } }));
+    }
+
+    try {
+        const user1 = Math.min(userId, friendId);
+        const user2 = Math.max(userId, friendId);
+
+        const query = `
+            SELECT id, sender_id, receiver_id, content, created_at
+            FROM direct_messages
+            WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)
+            ORDER BY created_at ASC;
+        `;
+        const { rows } = await db.query(query, [user1, user2]);
+
+        ws.send(JSON.stringify({
+            type: 'dm-history-success',
+            payload: {
+                friendId: friendId,
+                messages: rows,
+            },
+        }));
+
+    } catch (error) {
+        console.error('Error fetching DM history:', error);
+        ws.send(JSON.stringify({ type: 'dm-history-failure', payload: { message: 'Error fetching message history.' } }));
+    }
+}
+
 module.exports = {
     handleFriendRequest,
     handleAcceptFriendRequest,
@@ -386,4 +431,5 @@ module.exports = {
     handleRemoveFriend,
     handleGetFriendsList,
     handleDirectMessage,
+    handleGetDmHistory,
 };

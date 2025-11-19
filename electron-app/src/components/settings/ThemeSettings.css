@@ -1,17 +1,10 @@
-.theme-settings-container {
+.theme-settings-panel {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.theme-settings-container h2 {
-  margin: 0;
-  color: var(--text-color);
-}
-
-.theme-settings-container p {
-  margin: 0;
-  color: var(--text-secondary-color);
+  padding: 20px;
+  background-color: var(--background-color-secondary);
+  border-radius: 8px;
 }
 
 .theme-options {

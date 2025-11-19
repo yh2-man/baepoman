@@ -17,7 +17,7 @@
     height: 40px;
     border-radius: 50%;
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-color-inverted);
     display: flex;
     justify-content: center;
     align-items: center;

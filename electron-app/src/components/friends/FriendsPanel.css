@@ -18,7 +18,7 @@
     flex: 1; /* 남은 공간 모두 차지 */
     display: flex;
     flex-direction: column;
-    overflow-y: hidden; /* 스크롤은 내부 리스트에서 */
+    overflow-y: auto; /* This container will handle scrolling */
     margin-top: 12px;
 }
 
@@ -28,8 +28,7 @@
 }
 
 .friends-list {
-    flex: 1;
-    overflow-y: auto; /* 친구가 많아지면 스크롤 */
+    /* No flex or overflow needed here anymore */
 }
 
 .add-friend-section {

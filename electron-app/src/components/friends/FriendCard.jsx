@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFriends } from '../../context/FriendsContext';
+import ProfileAvatar from '../common/ProfileAvatar'; // Import the new component
 import './FriendCard.css';
 
 const ContextMenu = ({ x, y, onClose, onRemove }) => {
@@ -47,22 +48,11 @@ const FriendCard = ({ friend, isPending = false }) => {
         markMessagesAsRead(friend.id);
     };
 
-    const avatarUrl = friend.profile_image_url
-        ? `http://localhost:3001${friend.profile_image_url}`
-        : null;
-
     return (
         <div className="friend-card" onClick={handleCardClick} onContextMenu={handleContextMenu}>
-            <div className="friend-avatar">
-                {avatarUrl ? (
-                    <img src={avatarUrl} alt={friend.username} className="friend-avatar-img" />
-                ) : (
-                    <div className="avatar-placeholder">{friend.username.charAt(0)}</div>
-                )}
-            </div>
+            <ProfileAvatar user={friend} size="small" />
             <div className="friend-info">
                 <span className="friend-name">{friend.username}</span>
-                <span className="friend-tag">#{friend.tag}</span>
             </div>
             {unreadCount > 0 && <div className="unread-badge">{unreadCount}</div>}
             {isPending && (

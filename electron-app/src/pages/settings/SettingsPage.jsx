@@ -36,7 +36,7 @@ const SettingsPage = () => {
           </Button>
         </div>
       </aside>
-      <main className="settings-content">
+      <main className="settings-content custom-scrollbar">
         <Outlet />
       </main>
     </div>

@@ -226,56 +226,75 @@ async function handleJoinRoom(ws, payload, wss, rooms, userRoomMap) { // Add use
 }
 
 async function handleLeaveRoom(ws, payload, wss, rooms, userRoomMap) { // Add userRoomMap
-    const { roomId, userId } = ws;
-    if (!roomId) return;
+    // Prioritize payload for users leaving from lobby, fallback to ws properties for direct disconnects
+    const roomIdToLeave = payload?.roomId || ws.roomId;
+    const userIdToLeave = payload?.userId || ws.userId;
 
-    const room = rooms.get(roomId);
+    if (!roomIdToLeave) return;
+
+    const room = rooms.get(roomIdToLeave);
     if (room) {
-        room.delete(ws);
-        console.log(`User ${userId} left room ${roomId}. Remaining participants: ${room.size}`);
+        // Find the correct websocket client to remove
+        let clientToRemove = ws;
+        if (payload?.userId && payload.userId !== ws.userId) {
+            // This case handles a host kicking a user, not relevant now but good practice
+            for (const client of room) {
+                if (client.userId === payload.userId) {
+                    clientToRemove = client;
+                    break;
+                }
+            }
+        }
+        
+        room.delete(clientToRemove);
+        // The user is now officially out of the room. Clear their server-side state immediately.
+        clientToRemove.roomId = null;
+        userRoomMap.delete(userIdToLeave);
+
+        console.log(`User ${userIdToLeave} left room ${roomIdToLeave}. Remaining participants: ${room.size}`);
 
         // Fetch room details to get room_type and is_private
-        const roomDetailsResult = await db.query('SELECT room_type, is_private FROM rooms WHERE id = $1', [roomId]);
+        const roomDetailsResult = await db.query('SELECT room_type, is_private FROM rooms WHERE id = $1', [roomIdToLeave]);
         const roomType = roomDetailsResult.rows[0]?.room_type || 'group';
         const isPrivate = roomDetailsResult.rows[0]?.is_private || false;
 
         // Notify lobby of participant count change (only for group rooms)
         if (roomType === 'group') {
-            broadcastToLobby(wss, 'room-updated', { roomId, participantCount: room.size, roomType, isPrivate });
+            broadcastToLobby(wss, 'room-updated', { roomId: roomIdToLeave, participantCount: room.size, roomType, isPrivate });
         }
 
         // Notify remaining clients in the same room
         room.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                send(client, 'user-left', { userId });
+                send(client, 'user-left', { userId: userIdToLeave });
             }
         });
 
         // If the room is now empty, remove it from memory, DB, and notify lobby
         if (room.size === 0) {
-            console.log(`[DEBUG] Room ${roomId} is empty. Attempting to delete from memory and DB.`);
-            rooms.delete(roomId);
+            console.log(`[DEBUG] Room ${roomIdToLeave} is empty. Attempting to delete from memory and DB.`);
+            rooms.delete(roomIdToLeave);
             // Only delete group rooms from DB when empty. DM rooms might persist.
             if (roomType === 'group') {
                 try {
-                    const deleteResult = await db.query('DELETE FROM rooms WHERE id = $1', [roomId]);
-                    console.log(`[DEBUG] DB Delete result for room ${roomId}:`, deleteResult.rowCount);
+                    const deleteResult = await db.query('DELETE FROM rooms WHERE id = $1', [roomIdToLeave]);
+                    console.log(`[DEBUG] DB Delete result for room ${roomIdToLeave}:`, deleteResult.rowCount);
                     // Broadcast to lobby that the room is deleted
-                    broadcastToLobby(wss, 'room-deleted', { roomId });
-                    console.log(`[DEBUG] Broadcasted 'room-deleted' for room ${roomId}.`);
+                    broadcastToLobby(wss, 'room-deleted', { roomId: roomIdToLeave });
+                    console.log(`[DEBUG] Broadcasted 'room-deleted' for room ${roomIdToLeave}.`);
                 } catch (error) {
-                    console.error(`[DEBUG] Failed to delete room ${roomId} from database:`, error);
+                    console.error(`[DEBUG] Failed to delete room ${roomIdToLeave} from database:`, error);
                 }
             } else if (roomType === 'dm') {
-                console.log(`[DEBUG] DM Room ${roomId} is empty. Not deleting from DB.`);
+                console.log(`[DEBUG] DM Room ${roomIdToLeave} is empty. Not deleting from DB.`);
                 // DM rooms are not deleted from DB when empty, they persist for chat history.
             }
         } else { // Room still has participants
             // Check if the leaving user was the host
-            const roomDbResult = await db.query('SELECT host_id, room_type, is_private FROM rooms WHERE id = $1', [roomId]);
+            const roomDbResult = await db.query('SELECT host_id, room_type, is_private FROM rooms WHERE id = $1', [roomIdToLeave]);
             const currentHostId = roomDbResult.rows[0]?.host_id;
 
-            if (currentHostId === userId) {
+            if (currentHostId === userIdToLeave) {
                 // Host is leaving, elect a new host
                 const remainingParticipants = Array.from(room);
                 if (remainingParticipants.length > 0) {
@@ -283,13 +302,13 @@ async function handleLeaveRoom(ws, payload, wss, rooms, userRoomMap) { // Add us
                     const newHostId = newHostWs.userId;
 
                     // Update host in DB
-                    await db.query('UPDATE rooms SET host_id = $1 WHERE id = $2', [newHostId, roomId]);
-                    console.log(`[DEBUG] Room ${roomId}: Host changed from ${userId} to ${newHostId}.`);
+                    await db.query('UPDATE rooms SET host_id = $1 WHERE id = $2', [newHostId, roomIdToLeave]);
+                    console.log(`[DEBUG] Room ${roomIdToLeave}: Host changed from ${userIdToLeave} to ${newHostId}.`);
 
                     // Notify all remaining clients in the room about the new host
                     room.forEach(client => {
                         if (client.readyState === WebSocket.OPEN) {
-                            send(client, 'host-changed', { roomId, newHostId });
+                            send(client, 'host-changed', { roomId: roomIdToLeave, newHostId });
                         }
                     });
 
@@ -297,33 +316,32 @@ async function handleLeaveRoom(ws, payload, wss, rooms, userRoomMap) { // Add us
                     const newHostUserResult = await db.query('SELECT username FROM users WHERE id = $1', [newHostId]);
                     const newHostUsername = newHostUserResult.rows[0]?.username;
                     if (roomType === 'group') {
-                        broadcastToLobby(wss, 'room-updated', { roomId, hostId: newHostId, hostName: newHostUsername, participantCount: room.size, roomType, isPrivate });
+                        broadcastToLobby(wss, 'room-updated', { roomId: roomIdToLeave, hostId: newHostId, hostName: newHostUsername, participantCount: room.size, roomType, isPrivate });
                     }
 
                 } else {
                     // This case should ideally be handled by room.size === 0, but as a fallback
-                    console.log(`[DEBUG] Room ${roomId} is empty after host left. Deleting.`);
-                    rooms.delete(roomId);
+                    console.log(`[DEBUG] Room ${roomIdToLeave} is empty after host left. Deleting.`);
+                    rooms.delete(roomIdToLeave);
                     if (roomType === 'group') {
                         try {
-                            await db.query('DELETE FROM rooms WHERE id = $1', [roomId]);
-                            broadcastToLobby(wss, 'room-deleted', { roomId });
+                            await db.query('DELETE FROM rooms WHERE id = $1', [roomIdToLeave]);
+                            broadcastToLobby(wss, 'room-deleted', { roomId: roomIdToLeave });
                         } catch (error) {
-                            console.error(`[DEBUG] Failed to delete room ${roomId} from database after host left:`, error);
+                            console.error(`[DEBUG] Failed to delete room ${roomIdToLeave} from database after host left:`, error);
                         }
                     }
                 }
             } else {
-                console.log(`[DEBUG] User ${userId} left room ${roomId}. Not host. Room still has participants: ${room.size}.`);
+                console.log(`[DEBUG] User ${userIdToLeave} left room ${roomIdToLeave}. Not host. Room still has participants: ${room.size}.`);
                 // Only update participant count in lobby if non-host leaves
                 if (roomType === 'group') {
-                    broadcastToLobby(wss, 'room-updated', { roomId, participantCount: room.size, roomType, isPrivate });
+                    broadcastToLobby(wss, 'room-updated', { roomId: roomIdToLeave, participantCount: room.size, roomType, isPrivate });
                 }
             }
         }
     }
-    ws.roomId = null;
-    userRoomMap.delete(userId); // Remove from userRoomMap
+    // Note: Clearing ws.roomId and userRoomMap is now handled inside the `if (room)` block.
 }
 
 async function handleChatMessage(ws, payload, wss, rooms) {

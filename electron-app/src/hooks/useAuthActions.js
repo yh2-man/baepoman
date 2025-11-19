@@ -1,7 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 
 export function useAuthActions() {
-    const { isConnected, sendMessage } = useAuth();
+    const { isConnected, sendMessage, connect } = useAuth();
 
     const login = (email, password) => {
         if (isConnected) {
@@ -10,9 +10,12 @@ export function useAuthActions() {
     };
 
     const signup = (username, email, password) => {
-        if (isConnected) {
+        // Ensure connection is active before sending message
+        connect(); 
+        // A small delay is needed as the connection is not instant
+        setTimeout(() => {
             sendMessage({ type: 'signup', payload: { username, email, password } });
-        }
+        }, 100);
     };
 
     const verifyEmail = (email, code) => {

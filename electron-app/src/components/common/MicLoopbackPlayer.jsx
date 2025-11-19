@@ -33,7 +33,7 @@ const MicLoopbackPlayer = () => {
     }
   }, [speakerVolume]);
 
-  return <audio ref={audioRef} muted={false} />;
+  return <audio ref={audioRef} muted={false} controls={false} style={{ display: 'none' }} />;
 };
 
 export default MicLoopbackPlayer;

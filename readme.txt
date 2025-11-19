@@ -22,3 +22,7 @@ npm start
 ### 사전 설치 필요
 - NodeJS
 - PostgreSQL
+
+### 현재 남아있는 버그
+- 친구 추가 거절 시 친구 추가 알림이 안사라짐 
+- 프로필 설정에 프로필 이미지 안나옴 (Profile Preview)글자가 나와 있음 
