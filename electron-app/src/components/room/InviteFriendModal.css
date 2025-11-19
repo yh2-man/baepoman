@@ -1,0 +1,57 @@
+/* InviteFriendModal.css */
+
+.invite-friend-modal-content {
+  position: absolute;
+  transform: translateX(-50%); /* Center horizontally based on the calculated left position */
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* Add shadow to stand out */
+  max-height: 40vh;
+  overflow-y: auto;
+  width: 300px;
+  color: var(--text-color);
+  z-index: 1000; /* Ensure it appears above other elements */
+}
+
+.invite-friend-modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  padding: 0 8px; /* Align with list item padding */
+  color: var(--text-color-dark);
+}
+
+.friend-list-container ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.friend-list-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 2px; /* Add a small gap between items */
+}
+
+.friend-list-item:last-child {
+  margin-bottom: 0;
+}
+
+.friend-list-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.friend-list-item .friend-name {
+  margin-left: 12px;
+  font-weight: 500;
+}
+
+.friend-list-container p {
+  text-align: center;
+  color: var(--text-color-light);
+  padding: 20px 0;
+}

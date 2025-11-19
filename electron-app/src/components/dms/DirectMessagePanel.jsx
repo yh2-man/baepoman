@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFriends } from '../../context/FriendsContext';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../common/Input';
@@ -11,6 +12,7 @@ const DirectMessagePanel = () => {
     const { user } = useAuth();
     const [messageContent, setMessageContent] = useState('');
     const messagesEndRef = useRef(null);
+    const navigate = useNavigate();
 
     const friend = friends.find(f => f.id === activeConversation);
     const messages = directMessages[activeConversation] || [];
@@ -39,6 +41,18 @@ const DirectMessagePanel = () => {
         const isMyMessage = msg.sender_id === user.id;
         const messageUser = isMyMessage ? user : friend;
 
+        let parsedContent;
+        try {
+            parsedContent = JSON.parse(msg.content);
+        } catch (e) {
+            parsedContent = null; // Not a JSON message
+        }
+
+        const handleJoinRoom = (roomId) => {
+            navigate(`/room/${roomId}`);
+            setActiveConversation(null); // Close DM panel after joining room
+        };
+
         // The structure now mirrors ChatPanel.jsx
         return (
             <div key={msg.id} className={`chat-message ${isMyMessage ? 'my-message' : 'other-message'}`}>
@@ -59,7 +73,14 @@ const DirectMessagePanel = () => {
                         <span className="message-username">{messageUser.username}</span>
                         <span className="message-timestamp">{new Date(msg.created_at).toLocaleTimeString()}</span>
                     </div>
-                    <div className="message-text">{msg.content}</div>
+                    {parsedContent && parsedContent.type === 'room-invite' ? (
+                        <div className="message-text room-invite-card">
+                            <p>{parsedContent.inviterUsername}님이 {parsedContent.roomName} 방으로 초대했습니다.</p>
+                            <Button onClick={() => handleJoinRoom(parsedContent.roomId)} size="small">방 참여</Button>
+                        </div>
+                    ) : (
+                        <div className="message-text">{msg.content}</div>
+                    )}
                 </div>
             </div>
         );

@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useWebRTC } from '../../context/WebRTCContext';
+import InviteFriendModal from '../../components/room/InviteFriendModal';
+import { useFriends } from '../../context/FriendsContext';
 import { useVoiceSubtitle } from '../../context/VoiceSubtitleContext';
 import VoiceSubtitleChat from '../../components/room/VoiceSubtitleChat';
 import RoomHeaderCard from '../../components/room/RoomHeaderCard';
@@ -30,12 +32,16 @@ const RoomPage = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const { user, currentRoom, loading, sendMessage, addMessageListener, removeMessageListener } = useAuth();
+  const { friends } = useFriends();
   
   const { joinRoom, leaveRoom, participants, setLocalAudioMuted, isGlobalMuted, setIsGlobalMuted, isLocalUserSpeaking } = useWebRTC();
   const { showVoiceSubtitleChat, toggleVoiceSubtitleChat } = useVoiceSubtitle();
 
   const [chatMessages, setChatMessages] = useState([]);
   const [isMuted, setIsMuted] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [modalPosition, setModalPosition] = useState({ top: 0, left: 0, bottom: 0 });
+  const inviteButtonRef = useRef(null);
   
   useEffect(() => {
     if (loading) {
@@ -108,8 +114,26 @@ const RoomPage = () => {
   };
 
   const handleInviteFriend = () => {
-    console.log('친구 초대 버튼 클릭됨!');
-    // TODO: Implement friend invitation logic (e.g., open a modal)
+    if (inviteButtonRef.current) {
+      const rect = inviteButtonRef.current.getBoundingClientRect();
+      setModalPosition({
+        bottom: window.innerHeight - rect.top + 8, // 8px gap above the button
+        left: rect.left + rect.width / 2,
+      });
+    }
+    setIsInviteModalOpen(true);
+  };
+
+  const handleSendFriendInvitation = (friend) => {
+    const invitationMessage = {
+      type: 'room-invite',
+      roomId: currentRoom.id,
+      roomName: currentRoom.name,
+      inviterId: user.id,
+      inviterUsername: user.username,
+    };
+    sendMessage({ type: 'direct-message', payload: { receiverId: friend.id, content: JSON.stringify(invitationMessage) } });
+    setIsInviteModalOpen(false); // Close modal after sending
   };
 
   if (!currentRoom) {
@@ -142,7 +166,7 @@ const RoomPage = () => {
               ))}
           </div>
           <div className="call-controls-bar">
-            <Button onClick={handleInviteFriend} size="small">
+            <Button ref={inviteButtonRef} onClick={handleInviteFriend} size="small">
               친구 초대
             </Button>
             <Button onClick={handleToggleMute} size="small">
@@ -159,6 +183,15 @@ const RoomPage = () => {
         </div>
         {showVoiceSubtitleChat && <VoiceSubtitleChat />}
       </div>
+      {isInviteModalOpen && (
+        <InviteFriendModal
+          isOpen={isInviteModalOpen}
+          friends={friends}
+          onClose={() => setIsInviteModalOpen(false)}
+          onInviteFriend={handleSendFriendInvitation}
+          position={modalPosition}
+        />
+      )}
     </div>
   );
 };

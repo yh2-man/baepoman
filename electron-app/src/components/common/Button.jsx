@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import styled from 'styled-components';
 import PropTypes from 'prop-types';
 
@@ -43,7 +43,7 @@ const StyledButton = styled.button`
     }
 `;
 
-function Button({
+const Button = forwardRef(({
   onClick,
   children,
   className,
@@ -52,9 +52,10 @@ function Button({
   textColor,
   width,
   size // Add size to props
-}) {
+}, ref) => {
   return (
     <StyledButton
+      ref={ref}
       onClick={onClick}
       className={className}
       $backgroundColor={backgroundColor}
@@ -66,7 +67,7 @@ function Button({
       {children}
     </StyledButton>
   );
-}
+});
 
 // Added PropTypes
 Button.propTypes = {
