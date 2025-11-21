@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext'; // Import useAuth
+import PropTypes from 'prop-types';
 
 const FriendsContext = createContext();
 
@@ -12,8 +13,9 @@ export const FriendsProvider = ({ children }) => {
     const [directMessages, setDirectMessages] = useState({}); // Store messages by friend ID
     const [unreadMessages, setUnreadMessages] = useState({}); // Store unread message counts by friend ID
     const [activeConversation, setActiveConversation] = useState(null); // ID of the friend in the active DM
+    const [profiles, setProfiles] = useState({}); // Cache for user profiles { userId: profile }
 
-    const { user, isConnected, sendMessage, addMessageListener, removeMessageListener } = useAuth();
+    const { user, isConnected, isSocketAuthenticated, sendMessage, addMessageListener, removeMessageListener } = useAuth();
 
     // Ref to hold the current active conversation to avoid re-running the main effect
     const activeConversationRef = useRef(activeConversation);
@@ -21,11 +23,37 @@ export const FriendsProvider = ({ children }) => {
         activeConversationRef.current = activeConversation;
     }, [activeConversation]);
 
+    // Listen for incoming profile data from the server
+    useEffect(() => {
+        if (!isSocketAuthenticated) return;
+
+        const handleProfileData = (data) => {
+            if (data.user) {
+                setProfiles(prev => ({ ...prev, [data.user.id]: data.user }));
+            }
+        };
+
+        addMessageListener('user-profile-data', handleProfileData);
+
+        return () => {
+            removeMessageListener('user-profile-data', handleProfileData);
+        };
+    }, [isSocketAuthenticated, addMessageListener, removeMessageListener]);
+
+    // Function for components to request a user's profile
+    const getProfile = useCallback((userId) => {
+        if (!userId) return;
+        if (!profiles[userId] && isSocketAuthenticated) {
+            sendMessage({ type: 'get-user-profile', payload: { userId } });
+        }
+    }, [profiles, sendMessage, isSocketAuthenticated]);
+
+
     const getDmHistory = useCallback((friendId) => {
-        if (isConnected) {
+        if (isSocketAuthenticated) {
             sendMessage({ type: 'get-dm-history', payload: { friendId } });
         }
-    }, [isConnected, sendMessage]);
+    }, [isSocketAuthenticated, sendMessage]);
 
     const setActiveConversationAndFetchHistory = useCallback((friendId) => {
         setActiveConversation(friendId);
@@ -35,7 +63,7 @@ export const FriendsProvider = ({ children }) => {
     }, [getDmHistory]);
 
     useEffect(() => {
-        if (!isConnected || !user) return;
+        if (!isSocketAuthenticated || !user) return;
 
         const handleFriendsList = (data) => {
             setFriends(data.accepted || []);
@@ -67,7 +95,7 @@ export const FriendsProvider = ({ children }) => {
                 setActiveConversation(null);
             }
         };
-        
+
         const handleFriendRequestReceived = (data) => {
             setPendingRequests(prev => ({
                 ...prev,
@@ -122,7 +150,7 @@ export const FriendsProvider = ({ children }) => {
         return () => {
             Object.entries(listeners).forEach(([type, handler]) => removeMessageListener(type, handler));
         };
-    }, [isConnected, user, sendMessage, addMessageListener, removeMessageListener]);
+    }, [isSocketAuthenticated, user?.id, sendMessage, addMessageListener, removeMessageListener]);
 
     const sendFriendRequest = (fullTag) => sendMessage({ type: 'friend-request', payload: { fullTag } });
     const acceptFriendRequest = (requesterId) => sendMessage({ type: 'accept-friend-request', payload: { requesterId } });
@@ -150,6 +178,8 @@ export const FriendsProvider = ({ children }) => {
         removeFriend,
         sendDirectMessage,
         markMessagesAsRead,
+        profiles, // Expose profiles
+        getProfile, // Expose getProfile
     };
 
     return (
@@ -157,4 +187,8 @@ export const FriendsProvider = ({ children }) => {
             {children}
         </FriendsContext.Provider>
     );
+};
+
+FriendsProvider.propTypes = {
+    children: PropTypes.node.isRequired,
 };

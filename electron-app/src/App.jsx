@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 // Context and Global Components
 import { AuthProvider, useAuth } from './context/AuthContext'; // Import useAuth
 import { NotificationProvider } from './context/NotificationContext';
-import { ProfileProvider } from './context/ProfileContext';
 import { ConfirmationProvider } from './context/ConfirmationContext';
 import { WebRTCProvider } from './context/WebRTCContext';
 import { AudioSettingsProvider } from './context/AudioSettingsContext';
@@ -56,7 +55,6 @@ function App() {
                       <AuthProvider>
                         <AudioSettingsProvider>
                           <WebRTCProvider>
-                            <ProfileProvider>
                               <FriendsProvider>
                                 <VoiceSubtitleProvider>
                                   {/* 5. Routes가 실제 페이지 경로를 정의합니다. */}
@@ -84,7 +82,6 @@ function App() {
                                   </Routes>
                                 </VoiceSubtitleProvider>
                               </FriendsProvider>
-                            </ProfileProvider>
                           </WebRTCProvider>
                         </AudioSettingsProvider>
             </AuthProvider>

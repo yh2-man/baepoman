@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext'; // Changed from useAuthActions
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
@@ -36,7 +36,14 @@ function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [keepLoggedIn, setKeepLoggedIn] = useState(true); // State for the checkbox
-    const { loginAndSetPersistence } = useAuth(); // Get new function from context
+    const { loginAndSetPersistence, isSocketAuthenticated } = useAuth(); // Get new function and state from context
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (isSocketAuthenticated) {
+            navigate('/lobby');
+        }
+    }, [isSocketAuthenticated, navigate]);
 
     const handleLogin = (e) => {
         e.preventDefault(); // Prevent form submission

@@ -1,13 +1,12 @@
 :root {
     --card-width: 280px;
     --card-height: 180px;
-    --card-border-radius: 12px;
   }
   
   .room-card {
     width: var(--card-width);
     height: var(--card-height);
-    border-radius: var(--card-border-radius);
+    border-radius: var(--border-radius);
     background-size: cover;
     background-position: center;
     position: relative;

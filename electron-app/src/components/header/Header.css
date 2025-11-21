@@ -6,7 +6,7 @@
     height: 60px;
     background-color: var(--surface-color);
     color: var(--text-color);
-    border-bottom: 1px solid var(--background-tertiary, #333);
+    border-bottom: 1px solid var(--background-tertiary);
   }
   
   .header-section {

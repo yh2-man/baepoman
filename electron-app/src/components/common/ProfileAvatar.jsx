@@ -7,8 +7,15 @@ const ProfileAvatar = ({ user, className = '', size = 'medium', isMuted = false 
     return <div className={`avatar-placeholder ${className} profile-avatar--${size}`}>?</div>;
   }
 
-  // The server is now responsible for sending the full, absolute URL.
-  const avatarUrl = user.profile_image_url || null;
+  let avatarUrl = null;
+  if (user.profile_image_url) {
+    // Check if it's a data URL (for local preview) or a relative server path
+    if (user.profile_image_url.startsWith('data:')) {
+      avatarUrl = user.profile_image_url;
+    } else {
+      avatarUrl = `http://localhost:3001${user.profile_image_url}`;
+    }
+  }
 
   const sizeClass = `profile-avatar--${size}`;
 

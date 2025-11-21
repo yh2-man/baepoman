@@ -94,7 +94,7 @@
 .context-menu {
     position: fixed;
     background-color: var(--background-tertiary);
-    border: 1px solid var(--background-modifier-accent);
+    border: 1px solid var(--primary-color-dark);
     border-radius: var(--border-radius);
     padding: 8px;
     z-index: 1000;
@@ -110,5 +110,5 @@
 }
 
 .context-menu-item:hover {
-    background-color: var(--background-modifier-hover);
+    background-color: var(--primary-color-dark);
 }

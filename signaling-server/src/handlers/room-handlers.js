@@ -1,5 +1,6 @@
 const db = require('../db/Db');
 const WebSocket = require('ws');
+const { getUserDetails } = require('../utils/db-helpers');
 
 // Helper function to send data to a WebSocket client
 const send = (ws, type, payload) => {
@@ -10,8 +11,8 @@ const send = (ws, type, payload) => {
 const broadcastToLobby = (wss, type, payload) => {
     const message = JSON.stringify({ type, payload });
     wss.clients.forEach(client => {
-        // Send to clients who are connected but not in a room
-        if (client.readyState === WebSocket.OPEN && !client.roomId) {
+        // Send to all connected clients. The client-side will decide what to do with the info.
+        if (client.readyState === WebSocket.OPEN) {
             client.send(message);
         }
     });
@@ -53,7 +54,7 @@ async function handleGetRooms(ws, payload, wss, rooms) {
         const liveRooms = dbRooms.map(room => ({
             ...room,
             categoryImageUrl: room.categoryImageUrl ? `http://localhost:3001${room.categoryImageUrl}` : null,
-            participantCount: rooms.get(room.id)?.size || 0,
+            participantCount: rooms.get(String(room.id))?.size || 0, // Convert room.id to string for map lookup
         }));
 
         send(ws, 'rooms-list', liveRooms);
@@ -82,9 +83,8 @@ async function handleCreateRoom(ws, payload, wss, rooms) {
         );
         const newRoom = result.rows[0];
         
-        // Add host username to the new room object
-        const userResult = await db.query('SELECT username FROM users WHERE id = $1', [userId]);
-        const hostName = userResult.rows[0]?.username;
+        const host = await getUserDetails(userId);
+        const hostName = host ? host.username : 'Unknown';
 
         let categoryName = null;
         let categoryImageUrl = null;
@@ -124,8 +124,7 @@ async function handleJoinRoom(ws, payload, wss, rooms, userRoomMap) { // Add use
     const { roomId, userId } = payload;
     
     try {
-        // Ensure the room exists in the database before joining
-        const dbResult = await db.query(
+        const dbRoomResult = await db.query(
             `SELECT 
                 r.id, r.name, r.room_type AS "roomType", r.is_private AS "isPrivate", 
                 r.max_participants AS "maxParticipants", r.host_id AS "hostId", r.category_id AS "categoryId",
@@ -135,54 +134,43 @@ async function handleJoinRoom(ws, payload, wss, rooms, userRoomMap) { // Add use
             WHERE r.id = $1`,
             [roomId]
         );
-        if (dbResult.rows.length === 0) {
+        if (dbRoomResult.rows.length === 0) {
             return send(ws, 'error', { message: 'Room not found.' });
         }
         
-        const dbRoom = dbResult.rows[0];
+        const dbRoom = dbRoomResult.rows[0];
         let room = rooms.get(roomId);
 
-        // If room is not in memory, create it
         if (!room) {
             room = new Set();
             rooms.set(roomId, room);
         }
 
-        // Check if room is full
         if (room.size >= dbRoom.maxParticipants) {
             return send(ws, 'error', { message: 'Room is full.' });
         }
 
-        // --- REORDERED LOGIC TO PREVENT RACE CONDITION ---
+        // --- Simplified Logic ---
 
-        // 1. Prepare all necessary data first
-        const joiningUserResult = await db.query('SELECT id, username, tag, profile_image_url FROM users WHERE id = $1', [userId]);
-        const joiningUser = joiningUserResult.rows[0];
-        if (joiningUser.profile_image_url) {
-            joiningUser.profile_image_url = `http://localhost:3001${joiningUser.profile_image_url}`;
+        // 1. Get details for all users (existing participants + new one)
+        const existingUserIds = Array.from(room).map(client => client.userId);
+        const allUserIds = [...existingUserIds, userId];
+        
+        const userDetailsPromises = allUserIds.map(id => getUserDetails(id));
+        const allUserDetails = (await Promise.all(userDetailsPromises)).filter(p => p !== null);
+
+        const joiningUser = allUserDetails.find(u => u.id === userId);
+        if (!joiningUser) {
+            return send(ws, 'error', { message: 'Joining user could not be verified.' });
         }
 
-        // Temporarily add the new user to the room to build the full participant list
-        room.add(ws);
-        ws.roomId = roomId; // Set these early for the participantPromises
+        // 2. Now that data is fetched, update the state
+        ws.roomId = roomId;
         ws.userId = userId;
+        userRoomMap.set(userId, roomId);
+        room.add(ws);
 
-        const participantPromises = Array.from(room).map(async client => {
-            if (client.userId) {
-                const userResult = await db.query('SELECT id, username, tag, profile_image_url FROM users WHERE id = $1', [client.userId]);
-                const user = userResult.rows[0];
-                if (user && user.profile_image_url) {
-                    user.profile_image_url = `http://localhost:3001${user.profile_image_url}`;
-                }
-                return user;
-            }
-            return null;
-        });
-        const currentParticipants = (await Promise.all(participantPromises)).filter(p => p !== null);
-        
-        // Remove the user again before the final state update to avoid double-adding issues if logic changes
-        room.delete(ws);
-
+        // 3. Prepare and send payloads
         const roomInfoPayload = {
             room: {
                 id: dbRoom.id,
@@ -194,27 +182,20 @@ async function handleJoinRoom(ws, payload, wss, rooms, userRoomMap) { // Add use
                 hostId: dbRoom.hostId,
                 maxParticipants: dbRoom.maxParticipants,
             },
-            participants: currentParticipants,
+            participants: allUserDetails, // Send the full, updated list
         };
 
-        // 2. Officially add user to the room state
-        ws.roomId = roomId;
-        ws.userId = userId;
-        userRoomMap.set(userId, roomId);
-        room.add(ws);
-        
-        // 3. Send room-info to the NEWLY joined client FIRST
         send(ws, 'room-info', roomInfoPayload);
-        send(ws, 'joined-room', { roomId }); // Also confirm join
+        send(ws, 'joined-room', { roomId });
 
-        // 4. THEN, notify other clients in the room
-        room.forEach(client => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-                send(client, 'user-joined', { user: joiningUser });
-            }
-        });
+        setTimeout(() => {
+            room.forEach(client => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    send(client, 'user-joined', { user: joiningUser });
+                }
+            });
+        }, 100);
 
-        // 5. Finally, notify the lobby of the participant count change
         broadcastToLobby(wss, 'room-updated', { roomId, participantCount: room.size });
 
         console.log(`User ${userId} joined room ${roomId}. Current participants: ${room.size}`);
@@ -313,10 +294,9 @@ async function handleLeaveRoom(ws, payload, wss, rooms, userRoomMap) { // Add us
                     });
 
                     // Update lobby with new host info
-                    const newHostUserResult = await db.query('SELECT username FROM users WHERE id = $1', [newHostId]);
-                    const newHostUsername = newHostUserResult.rows[0]?.username;
-                    if (roomType === 'group') {
-                        broadcastToLobby(wss, 'room-updated', { roomId: roomIdToLeave, hostId: newHostId, hostName: newHostUsername, participantCount: room.size, roomType, isPrivate });
+                    const newHost = await getUserDetails(newHostId);
+                    if (roomType === 'group' && newHost) {
+                        broadcastToLobby(wss, 'room-updated', { roomId: roomIdToLeave, hostId: newHostId, hostName: newHost.username, participantCount: room.size, roomType, isPrivate });
                     }
 
                 } else {

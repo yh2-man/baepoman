@@ -30,7 +30,11 @@ export class Connection {
             this.dataChannel = event.channel;
             this.dataChannel.onmessage = (e) => {
                 if (this.onDataMessage) {
-                    this.onDataMessage(JSON.parse(e.data));
+                    try {
+                        this.onDataMessage(JSON.parse(e.data));
+                    } catch (error) {
+                        console.error('Error parsing data channel message:', error, e.data);
+                    }
                 }
             };
         };
@@ -42,7 +46,11 @@ export class Connection {
         this.dataChannel = this.peerConnection.createDataChannel(label);
         this.dataChannel.onmessage = (event) => {
             if (this.onDataMessage) {
-                this.onDataMessage(JSON.parse(event.data));
+                try {
+                    this.onDataMessage(JSON.parse(event.data));
+                } catch (error) {
+                    console.error('Error parsing data channel message from created channel:', error, event.data);
+                }
             }
         };
         // Note: onopen/onclose handlers can be added here for debugging if needed

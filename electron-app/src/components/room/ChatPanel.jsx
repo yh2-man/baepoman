@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useProfiles } from '../../context/ProfileContext';
+import { useFriends } from '../../context/FriendsContext';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import ProfileAvatar from '../common/ProfileAvatar';
@@ -8,7 +8,7 @@ import './ChatPanel.css';
 
 const ChatPanel = ({ roomId, messages, onSendMessage, onDeleteMessage }) => {
     const { user } = useAuth();
-    const { profiles, getProfile } = useProfiles();
+    const { profiles, getProfile } = useFriends();
     const [messageInput, setMessageInput] = useState('');
     const messagesEndRef = useRef(null);
 

@@ -3,10 +3,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import Input from '../common/Input';
 import Button from '../common/Button';
+import ProfileAvatar from '../common/ProfileAvatar'; // Use ProfileAvatar for display
 import './ProfileSettings.css';
 
 const ProfileSettings = () => {
-    const { user, token, sendMessage, updateUser } = useAuth(); // Added token and updateUser
+    const { user, token, sendMessage, updateUser } = useAuth();
     const { addNotification } = useNotification();
 
     const [username, setUsername] = useState(user?.username || '');
@@ -14,11 +15,7 @@ const ProfileSettings = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
     const [profileImageFile, setProfileImageFile] = useState(null);
-    
-    const fullPreviewUrl = user?.profile_image_url 
-        ? `http://localhost:3001${user.profile_image_url}`
-        : null;
-    const [previewUrl, setPreviewUrl] = useState(fullPreviewUrl);
+    const [previewDataUrl, setPreviewDataUrl] = useState(null);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -26,7 +23,7 @@ const ProfileSettings = () => {
             setProfileImageFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPreviewUrl(reader.result);
+                setPreviewDataUrl(reader.result);
             };
             reader.readAsDataURL(file);
         }
@@ -40,24 +37,20 @@ const ProfileSettings = () => {
             changesMade = true;
             const formData = new FormData();
             formData.append('profileImage', profileImageFile);
-            // No longer sending userId in body
 
             try {
                 const response = await fetch('http://localhost:3001/api/upload/profile-image', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
+                    headers: { 'Authorization': `Bearer ${token}` },
                     body: formData,
                 });
 
                 const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || '이미지 업로드에 실패했습니다.');
-                }
+                if (!response.ok) throw new Error(data.message || '이미지 업로드에 실패했습니다.');
 
                 updateUser({ profile_image_url: data.imageUrl });
+                setPreviewDataUrl(null); // Clear local preview after successful upload
+                setProfileImageFile(null);
                 addNotification('프로필 이미지가 업데이트되었습니다.', 'success');
 
             } catch (error) {
@@ -68,6 +61,8 @@ const ProfileSettings = () => {
         // 2. Handle Username Change
         if (username && username !== user.username) {
             changesMade = true;
+            updateUser({ username: username }); // Optimistically update UI
+            // Send request to server
             sendMessage({ type: 'update-profile', payload: { newUsername: username } });
         }
 
@@ -96,16 +91,15 @@ const ProfileSettings = () => {
         }
     };
 
+    // Create a temporary user object for previewing the new image
+    const previewUser = previewDataUrl ? { ...user, profile_image_url: previewDataUrl } : user;
+
     return (
         <div className="profile-settings-container">
             <h3>프로필 설정</h3>
 
             <div className="form-section profile-picture-section">
-                {previewUrl ? (
-                    <img src={previewUrl} alt="Profile Preview" className="profile-picture-preview" />
-                ) : (
-                    <div className="profile-picture-placeholder">{user?.username.charAt(0)}</div>
-                )}
+                <ProfileAvatar user={previewUser} size="large" />
                 <div className="profile-picture-actions">
                     <label htmlFor="profile-image-upload">프로필 사진 변경</label>
                     <Input 

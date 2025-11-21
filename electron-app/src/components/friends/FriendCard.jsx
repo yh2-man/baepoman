@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useFriends } from '../../context/FriendsContext';
 import ProfileAvatar from '../common/ProfileAvatar'; // Import the new component
 import './FriendCard.css';
 
-const ContextMenu = ({ x, y, onClose, onRemove }) => {
+const ContextMenu = React.forwardRef(({ x, y, onClose, onRemove }, ref) => {
     return (
-        <div className="context-menu" style={{ top: y, left: x }} onClick={onClose}>
+        <div className="context-menu" style={{ top: y, left: x }} onClick={onClose} ref={ref}>
             <div className="context-menu-item" onClick={onRemove}>
                 친구 삭제
             </div>
         </div>
     );
-};
+});
 
 const FriendCard = ({ friend, isPending = false }) => {
     const {
@@ -24,6 +24,7 @@ const FriendCard = ({ friend, isPending = false }) => {
     } = useFriends();
 
     const [contextMenu, setContextMenu] = useState(null);
+    const menuRef = useRef(null);
 
     const unreadCount = unreadMessages[friend.id] || 0;
 
@@ -36,6 +37,23 @@ const FriendCard = ({ friend, isPending = false }) => {
     const closeContextMenu = () => {
         setContextMenu(null);
     };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                closeContextMenu();
+            }
+        };
+
+        if (contextMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [contextMenu]);
+
 
     const handleRemoveFriend = () => {
         removeFriend(friend.id);
@@ -63,6 +81,7 @@ const FriendCard = ({ friend, isPending = false }) => {
             )}
             {contextMenu && (
                 <ContextMenu
+                    ref={menuRef}
                     x={contextMenu.x}
                     y={contextMenu.y}
                     onClose={closeContextMenu}

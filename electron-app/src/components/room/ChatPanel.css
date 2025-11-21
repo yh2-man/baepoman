@@ -116,7 +116,7 @@
 }
 
 .message-text {
-    background-color: var(--background-color-secondary);
+    background-color: var(--background-tertiary);
     padding: 4px 12px;
     border-radius: var(--border-radius);
     word-wrap: break-word;
@@ -173,6 +173,6 @@
 }
 
 .delete-message-btn:hover {
-    color: var(--danger-color);
+    color: var(--error-color);
     text-decoration: underline;
 }

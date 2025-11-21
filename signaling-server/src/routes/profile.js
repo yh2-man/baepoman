@@ -71,11 +71,6 @@ router.get('/me', authenticateToken, async (req, res) => {
 
         const user = result.rows[0];
         
-        // Ensure the profile image URL is absolute
-        if (user.profile_image_url) {
-            user.profile_image_url = `http://localhost:3001${user.profile_image_url}`;
-        }
-
         res.json(user);
 
     } catch (error) {

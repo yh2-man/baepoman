@@ -1,5 +1,6 @@
 const db = require('../db/Db');
 const WebSocket = require('ws');
+const { getUserDetails } = require('../utils/db-helpers');
 
 /**
  * Finds a user's WebSocket connection from the server's client list.
@@ -60,12 +61,12 @@ async function handleGetFriendsList(ws) {
                 id: row.user_id_2,
                 username: row.username2,
                 tag: row.tag2,
-                profile_image_url: row.profile_image_url2 ? `http://localhost:3001${row.profile_image_url2}` : null,
+                profile_image_url: row.profile_image_url2, // Pass relative path directly
             } : {
                 id: row.user_id_1,
                 username: row.username1,
                 tag: row.tag1,
-                profile_image_url: row.profile_image_url1 ? `http://localhost:3001${row.profile_image_url1}` : null,
+                profile_image_url: row.profile_image_url1, // Pass relative path directly
             };
 
             switch (row.status) {
@@ -167,16 +168,10 @@ async function handleFriendRequest(ws, { fullTag }, wss) {
         // Notify the target user if they are online
         const targetSocket = findUserConnection(wss, targetUser.id);
         if (targetSocket) {
-            const { rows: requesterDetails } = await db.query('SELECT username, tag, profile_image_url FROM users WHERE id = $1', [requesterId]);
-            const requester = requesterDetails[0];
+            const requester = await getUserDetails(requesterId);
             targetSocket.send(JSON.stringify({
                 type: 'friend-request-received',
-                payload: {
-                    id: requesterId,
-                    username: requester.username,
-                    tag: requester.tag,
-                    profile_image_url: requester.profile_image_url ? `http://localhost:3001${requester.profile_image_url}` : null,
-                }
+                payload: requester
             }));
         }
 
@@ -220,20 +215,10 @@ async function handleAcceptFriendRequest(ws, { requesterId }, wss) {
         );
 
         // --- Notify both users ---
-        const { rows: requesterDetails } = await db.query('SELECT id, username, tag, profile_image_url FROM users WHERE id = $1', [requesterId]);
-        const { rows: accepterDetails } = await db.query('SELECT id, username, tag, profile_image_url FROM users WHERE id = $1', [accepterId]);
+        const requesterUserObject = await getUserDetails(requesterId);
+        const accepterUserObject = await getUserDetails(accepterId);
         
         const requesterSocket = findUserConnection(wss, requesterId);
-        
-        const accepterUserObject = {
-            ...accepterDetails[0],
-            profile_image_url: accepterDetails[0].profile_image_url ? `http://localhost:3001${accepterDetails[0].profile_image_url}` : null,
-        };
-
-        const requesterUserObject = {
-            ...requesterDetails[0],
-            profile_image_url: requesterDetails[0].profile_image_url ? `http://localhost:3001${requesterDetails[0].profile_image_url}` : null,
-        };
 
         // Notify original requester
         if (requesterSocket) {

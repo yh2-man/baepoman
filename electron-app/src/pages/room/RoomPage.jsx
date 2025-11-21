@@ -5,6 +5,7 @@ import { useWebRTC } from '../../context/WebRTCContext';
 import InviteFriendModal from '../../components/room/InviteFriendModal';
 import { useFriends } from '../../context/FriendsContext';
 import { useVoiceSubtitle } from '../../context/VoiceSubtitleContext';
+import { useChat } from '../../hooks/useChat';
 import VoiceSubtitleChat from '../../components/room/VoiceSubtitleChat';
 import RoomHeaderCard from '../../components/room/RoomHeaderCard';
 import Button from '../../components/common/Button';
@@ -31,13 +32,13 @@ const ParticipantMedia = ({ participant }) => {
 const RoomPage = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const { user, currentRoom, loading, sendMessage, addMessageListener, removeMessageListener } = useAuth();
+  const { user, currentRoom, loading, sendMessage } = useAuth();
   const { friends } = useFriends();
   
   const { joinRoom, leaveRoom, participants, setLocalAudioMuted, isGlobalMuted, setIsGlobalMuted, isLocalUserSpeaking } = useWebRTC();
   const { showVoiceSubtitleChat, toggleVoiceSubtitleChat } = useVoiceSubtitle();
+  const { chatMessages, handleSendMessage, handleDeleteMessage } = useChat(roomId);
 
-  const [chatMessages, setChatMessages] = useState([]);
   const [isMuted, setIsMuted] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [modalPosition, setModalPosition] = useState({ top: 0, left: 0, bottom: 0 });
@@ -55,54 +56,9 @@ const RoomPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, roomId, loading, navigate]);
 
-  useEffect(() => {
-    if (loading || !user || !roomId) return;
-
-    sendMessage({ type: 'get-chat-history', payload: { roomId } });
-
-    const handleNewMessage = (payload) => {
-      setChatMessages(prev => [...prev, payload]);
-    };
-    const handleChatHistory = (payload) => {
-      setChatMessages(payload.messages || []);
-    };
-    const handleMessageDeleted = (payload) => {
-        setChatMessages(prev =>
-            prev.map(msg =>
-                msg.id === payload.messageId
-                    ? { ...msg, deleted_at: new Date().toISOString(), content: '삭제된 메시지입니다.' }
-                    : msg
-            )
-        );
-    };
-
-    addMessageListener('new-message', handleNewMessage);
-    addMessageListener('chat-history', handleChatHistory);
-    addMessageListener('message-deleted', handleMessageDeleted);
-
-    return () => {
-      removeMessageListener('new-message', handleNewMessage);
-      removeMessageListener('chat-history', handleChatHistory);
-      removeMessageListener('message-deleted', handleMessageDeleted);
-    };
-  }, [user, roomId, loading, sendMessage, addMessageListener, removeMessageListener]);
-
-
   const handleLeaveRoom = () => {
     leaveRoom();
     navigate('/lobby');
-  };
-
-  const handleSendMessage = (content) => {
-    if (user && roomId && content.trim()) {
-      sendMessage({ type: 'chat-message', payload: { roomId, userId: user.id, content } });
-    }
-  };
-
-  const handleDeleteMessage = (messageId) => {
-    if (user && roomId && messageId) {
-        sendMessage({ type: 'delete-message', payload: { messageId } });
-    }
   };
 
   const handleToggleMute = () => {

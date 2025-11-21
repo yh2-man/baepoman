@@ -17,8 +17,6 @@
 
 .side-panel {
   flex: 1; /* Give less space to the chat area */
-  /* width: 320px; Removed fixed width */
-  /* border-left: 1px solid var(--background-tertiary); Removed border-left */
   display: flex;
   flex-direction: column;
 }
@@ -32,12 +30,12 @@
 .room-header h1 {
   margin: 0;
   font-size: 1.5rem;
-  color: var(--header-primary);
+  color: var(--primary-color);
 }
 
 .room-header p {
   margin: 4px 0 0;
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
 }
 
 .room-main-content {
@@ -81,7 +79,7 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background-color: var(--color-background-light);
+    background-color: var(--background-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -116,7 +114,7 @@
 }
 
 .room-controls .leave-button {
-  background-color: var(--danger-color);
+  background-color: var(--error-color);
   color: white;
 }
 

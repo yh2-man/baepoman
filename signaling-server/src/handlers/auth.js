@@ -37,6 +37,9 @@ async function handleReauthenticate(ws, { token }) {
 
         console.log(`[DEBUG] Server: Re-authenticated and attached userId ${ws.userId} for ${ws.username}#${ws.tag}.`);
 
+        // Send success message to client
+        ws.send(JSON.stringify({ type: 'reauthentication-success', payload: { message: 'Re-authentication successful.' } }));
+
     } catch (error) {
         // This will catch expired or invalid tokens. We can ignore these silently.
         console.log(`[DEBUG] Server: Token re-authentication failed. Error: ${error.message}`);

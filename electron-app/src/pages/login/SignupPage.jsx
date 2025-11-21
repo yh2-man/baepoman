@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
-import { useAuthActions } from '../../hooks/useAuthActions';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
@@ -32,7 +31,7 @@ function SignupPage() {
     const navigate = useNavigate();
     const { addMessageListener, removeMessageListener } = useAuth();
     const { addNotification } = useNotification();
-    const { signup, verifyEmail } = useAuthActions();
+    const { signup, verifyEmail } = useAuth();
 
     // This effect handles UI changes and navigation based on WebSocket events.
     // Global notifications for these events are handled in AuthContext.
