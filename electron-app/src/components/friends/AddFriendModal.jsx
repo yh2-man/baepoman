@@ -40,20 +40,17 @@ const AddFriendModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="add-friend-modal-overlay">
-        <div ref={popoverRef} className="add-friend-popover visible">
-            <h2>친구 추가</h2>
-            <p>친구의 사용자명과 태그를 입력해주세요.</p>
-            <Input
-                value={fullTag}
-                onChange={(e) => setFullTag(e.target.value)}
-                placeholder="username#1234"
-            />
-            <div className="modal-actions">
-                <Button onClick={onClose} variant="secondary">취소</Button>
-                <Button onClick={handleSendRequest}>친구 요청 보내기</Button>
-            </div>
-        </div>
+    <div ref={popoverRef} className={`add-friend-popover ${isOpen ? 'visible' : ''}`}>
+        <h2>친구 추가</h2>
+        <p>친구의 사용자명과 태그를 입력해주세요.</p>
+        <Input
+            value={fullTag}
+            onChange={(e) => setFullTag(e.target.value)}
+            placeholder="username#1234"
+        />
+        <div className="modal-actions">
+            <Button onClick={onClose} variant="secondary">취소</Button>
+                            <Button onClick={handleSendRequest}>요청</Button>        </div>
     </div>
   );
 };

@@ -31,6 +31,17 @@ const StyledButton = styled.button`
         }
     }}
 
+    ${props => props.$circular && `
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        padding: 0;
+        font-size: 1rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `}
+
     width: ${props => props.$width || 'auto'}; // Default width to auto
     margin: 8px 0; // Keep margin for general use, can be overridden by parent
 
@@ -51,7 +62,8 @@ const Button = forwardRef(({
   hoverColor,
   textColor,
   width,
-  size // Add size to props
+  size, // Add size to props
+  circular // Add circular to props
 }, ref) => {
   return (
     <StyledButton
@@ -63,6 +75,7 @@ const Button = forwardRef(({
       $textColor={textColor}
       $width={width}
       $size={size} // Pass size to the styled component
+      $circular={circular} // Pass circular to the styled component
     >
       {children}
     </StyledButton>
@@ -78,6 +91,7 @@ Button.propTypes = {
   textColor: PropTypes.string,
   width: PropTypes.string,
   size: PropTypes.oneOf(['small', 'medium', 'large']), // Add size propType
+  circular: PropTypes.bool, // Add circular propType
 };
 
 export default Button;

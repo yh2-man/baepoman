@@ -12,7 +12,9 @@ async function handleGetUserProfile(ws, payload) {
 
         if (result.rows.length > 0) {
             const user = result.rows[0];
-            user.profile_image_url = user.profile_image_url ? `http://localhost:3001${user.profile_image_url}` : null;
+            // The client is responsible for prepending the base URL.
+            // Only send the relative path.
+            // user.profile_image_url = user.profile_image_url ? `http://localhost:3001${user.profile_image_url}` : null;
             ws.send(JSON.stringify({ type: 'user-profile-data', payload: { user } }));
         } else {
             // Optional: send a not-found response

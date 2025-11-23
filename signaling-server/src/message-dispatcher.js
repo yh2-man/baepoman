@@ -34,7 +34,7 @@ const messageHandlers = {
     'reauthenticate': handleReauthenticate,
 
     // Protected handlers (authentication required)
-    'update-profile': authenticateToken(handleUpdateProfile),
+    'update-profile': authenticateToken((ws, payload, wss) => handleUpdateProfile(ws, payload, wss)), // Pass wss
     'get-user-profile': authenticateToken(handleGetUserProfile),
     
     // Friends

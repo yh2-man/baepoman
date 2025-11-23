@@ -118,6 +118,21 @@ export const FriendsProvider = ({ children }) => {
             }
         };
 
+        const handleUserProfileUpdated = (data) => {
+            const { userId: updatedUserId, updatedProfile } = data;
+
+            // Update friends list if the updated user is a friend
+            setFriends(prevFriends => prevFriends.map(friend =>
+                friend.id === updatedUserId ? { ...friend, ...updatedProfile } : friend
+            ));
+
+            // Update profiles cache
+            setProfiles(prevProfiles => ({
+                ...prevProfiles,
+                [updatedUserId]: { ...prevProfiles[updatedUserId], ...updatedProfile }
+            }));
+        };
+
         const handleDirectMessageSent = (message) => {
             const { receiver_id } = message;
             setDirectMessages(prev => ({
@@ -142,7 +157,18 @@ export const FriendsProvider = ({ children }) => {
             'direct-message-received': handleDirectMessageReceived,
             'direct-message-sent': handleDirectMessageSent,
             'dm-history-success': handleDmHistorySuccess,
+            'user-profile-updated': handleUserProfileUpdated,
         };
+
+        const handleFriendRequestDeclined = (payload) => {
+            const { declinedUserId } = payload;
+            setPendingRequests(prev => ({
+                ...prev,
+                incoming: prev.incoming.filter(req => req.id !== declinedUserId),
+                outgoing: prev.outgoing.filter(req => req.id !== declinedUserId),
+            }));
+        };
+        listeners['friend-decline-success'] = handleFriendRequestDeclined;
 
         Object.entries(listeners).forEach(([type, handler]) => addMessageListener(type, handler));
         sendMessage({ type: 'get-friends-list' });
@@ -150,13 +176,27 @@ export const FriendsProvider = ({ children }) => {
         return () => {
             Object.entries(listeners).forEach(([type, handler]) => removeMessageListener(type, handler));
         };
-    }, [isSocketAuthenticated, user?.id, sendMessage, addMessageListener, removeMessageListener]);
+    }, [isSocketAuthenticated, user?.id, sendMessage, addMessageListener, removeMessageListener]); // Remove handleUserProfileUpdated from dependencies
 
-    const sendFriendRequest = (fullTag) => sendMessage({ type: 'friend-request', payload: { fullTag } });
-    const acceptFriendRequest = (requesterId) => sendMessage({ type: 'accept-friend-request', payload: { requesterId } });
-    const declineFriendRequest = (otherUserId) => sendMessage({ type: 'decline-friend-request', payload: { otherUserId } });
-    const removeFriend = (friendId) => sendMessage({ type: 'remove-friend', payload: { friendId } });
-    const sendDirectMessage = (receiverId, content) => sendMessage({ type: 'direct-message', payload: { receiverId, content } });
+    const sendFriendRequest = useCallback((fullTag) => {
+        sendMessage({ type: 'friend-request', payload: { fullTag } });
+    }, [sendMessage]);
+
+    const acceptFriendRequest = useCallback((requesterId) => {
+        sendMessage({ type: 'accept-friend-request', payload: { requesterId } });
+    }, [sendMessage]);
+
+    const declineFriendRequest = useCallback((otherUserId) => {
+        sendMessage({ type: 'decline-friend-request', payload: { otherUserId } });
+    }, [sendMessage]);
+
+    const removeFriend = useCallback((friendId) => {
+        sendMessage({ type: 'remove-friend', payload: { friendId } });
+    }, [sendMessage]);
+
+    const sendDirectMessage = useCallback((receiverId, content) => {
+        sendMessage({ type: 'direct-message', payload: { receiverId, content } });
+    }, [sendMessage]);
 
     const markMessagesAsRead = useCallback((friendId) => {
         if (unreadMessages[friendId] > 0) {

@@ -18,6 +18,38 @@ function findUserConnection(wss, userId) {
 }
 
 /**
+ * Notifies all online friends of a user about a profile update.
+ * @param {WebSocketServer} wss - The WebSocket server instance.
+ * @param {number} userId - The ID of the user whose profile was updated.
+ * @param {object} updatedUserData - The new user data to send.
+ */
+async function notifyFriends(wss, userId, updatedUserData) {
+    try {
+        const { rows: friendships } = await db.query(
+            `SELECT user_id_1, user_id_2 FROM friendships WHERE (user_id_1 = $1 OR user_id_2 = $1) AND status = 'accepted'`,
+            [userId]
+        );
+
+        const friendIds = friendships.map(f => f.user_id_1 === userId ? f.user_id_2 : f.user_id_1);
+
+        for (const friendId of friendIds) {
+            const friendSocket = findUserConnection(wss, friendId);
+            if (friendSocket) {
+                friendSocket.send(JSON.stringify({
+                    type: 'user-profile-updated',
+                    payload: {
+                        userId: userId,
+                        updatedProfile: updatedUserData,
+                    }
+                }));
+            }
+        }
+    } catch (error) {
+        console.error(`Error notifying friends of user ${userId}:`, error);
+    }
+}
+
+/**
  * Fetches the initial list of friends and pending requests for the user.
  * @param {WebSocket} ws - The WebSocket connection of the user.
  */
@@ -417,4 +449,6 @@ module.exports = {
     handleGetFriendsList,
     handleDirectMessage,
     handleGetDmHistory,
+    notifyFriends,      // Export for use in other handlers
+    findUserConnection, // Export for use in other handlers
 };

@@ -1,0 +1,110 @@
+.friend-request-modal-overlay {
+  /* This overlay is needed to capture clicks outside for closing */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999; /* Slightly lower than popover z-index */
+}
+
+.friend-request-popover {
+  position: absolute;
+  bottom: 100%; /* Position above the trigger button */
+  left: 0;
+  right: 0;
+  width: auto; /* Allow content to dictate width, but respect parent */
+  margin-bottom: 8px; /* Space between button and popover */
+  z-index: 1000;
+
+  /* 기본 상태: 완전히 숨김 */
+  display: none;
+
+  background-color: var(--surface-color);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  box-sizing: border-box;
+}
+
+.friend-request-popover.visible {
+  /* 보이는 상태 */
+  display: block;
+}
+
+.friend-request-popover h2 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 1.2rem;
+  color: var(--header-primary);
+}
+
+.friend-request-popover p {
+  margin-top: 0;
+  margin-bottom: 16px; /* Similar to AddFriendModal's description p */
+  font-size: 0.9rem;
+  color: var(--text-secondary-color);
+}
+
+.friend-request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 200px; /* Adjust height for popover size */
+    overflow-y: auto;
+    padding-right: 5px; /* For scrollbar spacing */
+}
+
+.friend-request-item {
+    display: flex;
+    align-items: center;
+    /* background-color: var(--background-tertiary); <- Removed */
+    padding: 10px;
+    border-radius: 5px;
+    gap: 10px;
+}
+
+.friend-request-item .friend-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.friend-request-item .friend-tag {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.friend-request-item .request-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.friend-request-item .request-actions button {
+    width: 30px; /* Fixed width */
+    height: 30px; /* Fixed height for circular shape */
+    border-radius: 50%; /* Make them circular */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0; /* Remove default padding */
+    font-size: 1rem; /* Adjust icon size */
+    font-weight: bold;
+    border: none; /* Remove default button border */
+    cursor: pointer; /* Indicate clickable */
+}
+
+.friend-request-item .request-actions button.button-secondary {
+    background-color: var(--background-modifier-accent);
+    color: var(--text-normal);
+}
+
+.modal-actions {
+  margin-top: 16px; /* Similar to AddFriendModal */
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px; /* Similar to AddFriendModal */
+}

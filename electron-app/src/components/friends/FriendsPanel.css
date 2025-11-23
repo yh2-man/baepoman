@@ -35,7 +35,35 @@
     position: relative;
     padding-top: 12px;
     border-top: 1px solid var(--background-tertiary, #333);
+    display: flex;
+    flex-direction: row; /* Changed to row */
+    gap: 8px;
 }
+
+.add-friend-section > div > button {
+    width: 100%; /* Ensure button fills its parent div */
+    padding: 10px 0; /* Override default padding, set horizontal padding to 0 */
+    box-sizing: border-box; /* Include padding in element's total width/height */
+}
+
+.friend-request-badge {
+    position: absolute; /* Keep absolute positioning */
+    top: -5px; /* Adjust as needed for positioning */
+    right: -5px; /* Adjust as needed for positioning */
+    background-color: var(--error-color); /* Use --error-color for consistency with chat badge */
+    color: white;
+    width: 18px; /* Fixed width like unread-badge */
+    height: 18px; /* Fixed height like unread-badge */
+    border-radius: 50%; /* Circular */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px; /* Smaller font size like unread-badge */
+    font-weight: bold;
+    z-index: 10; /* Ensure it's above other elements */
+    box-shadow: 0 0 0 2px var(--surface-color); /* Maintain border */
+}
+
 
 .no-friends-placeholder {
     text-align: center;

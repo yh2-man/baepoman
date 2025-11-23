@@ -5,6 +5,7 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import FriendCard from './FriendCard';
 import AddFriendModal from './AddFriendModal';
+import FriendRequestModal from './FriendRequestModal'; // Import the new component
 import ProfileAvatar from '../common/ProfileAvatar'; // Import the new component
 import './FriendsPanel.css';
 
@@ -27,7 +28,8 @@ const MyProfile = () => {
 
 const FriendsPanel = () => {
   const [filter, setFilter] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
+  const [isFriendRequestModalOpen, setIsFriendRequestModalOpen] = useState(false);
   const { friends, pendingRequests } = useFriends();
   const { user } = useAuth(); // Get user for the key
 
@@ -43,15 +45,6 @@ const FriendsPanel = () => {
       </div>
 
       <div className="friends-list-section custom-scrollbar">
-        {/* Pending Requests Section */}
-        {pendingRequests.incoming.length > 0 && (
-          <div className="friends-list-group">
-            <h5 className="friends-list-heading">보류 중인 요청 — {pendingRequests.incoming.length}</h5>
-            {pendingRequests.incoming.map(request => (
-              <FriendCard key={`pending-${request.id}`} friend={request} isPending />
-            ))}
-          </div>
-        )}
 
         {/* Friends List Section */}
         <div className="friends-list-group">
@@ -76,8 +69,21 @@ const FriendsPanel = () => {
       </div>
 
       <div className="add-friend-section">
-        <Button onClick={() => setIsModalOpen(true)} fullWidth>+ 친구 추가</Button>
-        <AddFriendModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+        {/* Wrapper for Add Friend Button */}
+        <div style={{ position: 'relative', flex: '1' }}>
+            <Button onClick={() => setIsAddFriendModalOpen(true)}>+ 친구 추가</Button>
+        </div>
+        {/* Wrapper for Friend Request Button */}
+        <div style={{ position: 'relative', flex: '1' }}>
+            <Button onClick={() => setIsFriendRequestModalOpen(true)} variant="secondary">친구 요청</Button>
+            {pendingRequests.incoming.length > 0 && (
+                <span className="friend-request-badge">
+                    {pendingRequests.incoming.length}
+                </span>
+            )}
+        </div>
+        <AddFriendModal isOpen={isAddFriendModalOpen} onClose={() => setIsAddFriendModalOpen(false)} />
+        <FriendRequestModal isOpen={isFriendRequestModalOpen} onClose={() => setIsFriendRequestModalOpen(false)} />
       </div>
     </aside>
   );

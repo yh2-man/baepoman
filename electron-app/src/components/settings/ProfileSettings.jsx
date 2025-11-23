@@ -39,7 +39,7 @@ const ProfileSettings = () => {
             formData.append('profileImage', profileImageFile);
 
             try {
-                const response = await fetch('http://localhost:3001/api/upload/profile-image', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/profile-image`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formData,
@@ -61,8 +61,7 @@ const ProfileSettings = () => {
         // 2. Handle Username Change
         if (username && username !== user.username) {
             changesMade = true;
-            updateUser({ username: username }); // Optimistically update UI
-            // Send request to server
+            // Removed optimistic update. AuthContext will update UI upon server success.
             sendMessage({ type: 'update-profile', payload: { newUsername: username } });
         }
 

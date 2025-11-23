@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { sendVerificationEmail } = require('../utils/EmailService');
+const { notifyFriends } = require('./friend-handlers'); // Import notifyFriends
 
 /**
  * Handles user re-authentication using a JWT.
@@ -99,7 +100,7 @@ async function handleLogin(ws, { email, password }) {
                     username: user.username,
                     tag: user.tag,
                     email: user.email,
-                    profile_image_url: user.profile_image_url ? `http://localhost:3001${user.profile_image_url}` : null,
+                    profile_image_url: user.profile_image_url, // Send relative path
                     last_seen_at: new Date().toISOString()
                 },
                 token: token
@@ -159,13 +160,15 @@ async function handleSignup(ws, { username, email, password }) {
     }
 }
 
-async function handleUpdateProfile(ws, payload) {
+async function handleUpdateProfile(ws, payload, wss) { // Add wss parameter
     const userId = ws.userId;
     if (!userId) {
         return ws.send(JSON.stringify({ type: 'update-profile-failure', payload: { message: '사용자 인증이 필요합니다.' } }));
     }
 
     const { newUsername, currentPassword, newPassword } = payload;
+
+    let updatedUserProfile = null; // To store updated profile data for notification
 
     try {
         const currentUser = await db.query('SELECT tag FROM users WHERE id = $1', [userId]);
@@ -188,8 +191,9 @@ async function handleUpdateProfile(ws, payload) {
             }
 
             await db.query('UPDATE users SET username = $1 WHERE id = $2', [newUsername, userId]);
-            ws.username = newUsername;
-            ws.send(JSON.stringify({ type: 'update-profile-success', payload: { message: '닉네임이 성공적으로 변경되었습니다.', user: { username: newUsername } } }));
+            ws.username = newUsername; // Update the WebSocket's username property
+            updatedUserProfile = { username: newUsername, tag: userTag }; // Prepare updated data
+            ws.send(JSON.stringify({ type: 'update-profile-success', payload: { message: '닉네임이 성공적으로 변경되었습니다.', user: { username: newUsername, tag: userTag } } }));
         }
 
         if (newPassword) {
@@ -214,6 +218,18 @@ async function handleUpdateProfile(ws, payload) {
 
             await db.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHashedPassword, userId]);
             ws.send(JSON.stringify({ type: 'update-profile-success', payload: { message: '비밀번호가 성공적으로 변경되었습니다.' } }));
+        }
+
+        // Notify friends about profile changes if any
+        if (updatedUserProfile && wss) {
+            // Fetch the full user details to send to friends
+            const fullUpdatedUserResult = await db.query(
+                'SELECT id, username, tag, profile_image_url, last_seen_at FROM users WHERE id = $1',
+                [userId]
+            );
+            if (fullUpdatedUserResult.rows.length > 0) {
+                notifyFriends(wss, userId, fullUpdatedUserResult.rows[0]);
+            }
         }
 
     } catch (error) {

@@ -4,6 +4,7 @@ const sharp = require('sharp');
 const path = require('path');
 const db = require('../db/Db');
 const authenticateToken = require('../middleware/authenticateToken'); // Import middleware
+const { notifyFriends, findUserConnection } = require('../handlers/friend-handlers'); // Import notifyFriends and findUserConnection
 
 const router = express.Router();
 
@@ -18,6 +19,8 @@ const uploadsDir = path.join(__dirname, '..', '..', 'uploads', 'profiles');
 router.post('/upload/profile-image', authenticateToken, upload.single('profileImage'), async (req, res) => {
     // The user ID is now securely obtained from the validated token
     const userId = req.user.id;
+    const wss = req.app.get('wss'); // Get the WebSocket server instance from app locals
+
 
     if (!req.file) {
         return res.status(400).json({ message: 'Profile image file is required.' });
@@ -49,6 +52,17 @@ router.post('/upload/profile-image', authenticateToken, upload.single('profileIm
         const newImageUrl = result.rows[0].profile_image_url;
 
         res.status(200).json({ imageUrl: newImageUrl });
+
+        // Notify friends about the profile image change
+        if (wss) {
+            const updatedUserResult = await db.query(
+                'SELECT id, username, tag, profile_image_url, last_seen_at FROM users WHERE id = $1',
+                [userId]
+            );
+            if (updatedUserResult.rows.length > 0) {
+                notifyFriends(wss, userId, updatedUserResult.rows[0]);
+            }
+        }
 
     } catch (error) {
         console.error('Error uploading profile image:', error);
