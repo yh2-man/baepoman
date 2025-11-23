@@ -15,6 +15,9 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
     const isHostRef = useRef(false);
     const userTracks = useRef(new Map());
     const streamIdToUserIdMapping = useRef({});
+    
+    const [peerVolumes, setPeerVolumes] = useState({});
+    const audioElements = useRef({});
 
     // --- Start of Bug Fix ---
     // Use a ref to hold the local stream to stabilize useCallback dependencies
@@ -25,6 +28,26 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
     // --- End of Bug Fix ---
 
     const { isSpeaking: isLocalUserSpeaking } = useVoiceActivity(localStream, { threshold: 2, delay: 150 });
+
+    const setAudioRef = useCallback((userId, element) => {
+        if (element) {
+            audioElements.current[userId] = element;
+            // Set initial volume when element is registered
+            const initialVolume = peerVolumes[userId] ?? 1;
+            element.volume = initialVolume;
+        } else {
+            delete audioElements.current[userId];
+        }
+    }, [peerVolumes]);
+
+
+    const setPeerVolume = useCallback((userId, volume) => {
+        const newVolume = Math.max(0, Math.min(1, volume));
+        setPeerVolumes(prev => ({ ...prev, [userId]: newVolume }));
+        if (audioElements.current[userId]) {
+            audioElements.current[userId].volume = newVolume;
+        }
+    }, []);
 
     useEffect(() => {
         Object.values(peerConnections.current).forEach(conn => {
@@ -87,6 +110,7 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
         console.log('Cleaning up all connections and resetting state...');
         cleanupPeerConnections();
         setParticipants({});
+        setPeerVolumes({});
     }, [cleanupPeerConnections]);
 
     const handleNewPeerForHost = useCallback((payload) => {
@@ -97,6 +121,8 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
 
         console.log(`Host: Handling new peer ${remoteUser.username} (${remoteUser.id})`);
         setParticipants(prev => ({ ...prev, [remoteUser.id]: { user: remoteUser, stream: null, isMuted: false, isSpeaking: false } }));
+        setPeerVolumes(prev => ({ ...prev, [remoteUser.id]: prev[remoteUser.id] ?? 1 }));
+
 
         const onDataMessageForConn = (msg) => handleDataMessage(msg, remoteUser.id);
         const conn = new Connection(user.id, remoteUser.id, sendMessage, ICE_SERVERS, onDataMessageForConn);
@@ -159,6 +185,7 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
         if (String(remoteUser.id) === String(user.id)) return;
         console.log(`Participant: Notified of new peer ${remoteUser.username} (${remoteUser.id})`);
         setParticipants(prev => ({ ...prev, [remoteUser.id]: { user: remoteUser, stream: null, isMuted: false, isSpeaking: false } }));
+        setPeerVolumes(prev => ({ ...prev, [remoteUser.id]: prev[remoteUser.id] ?? 1 }));
     }, [user?.id]);
 
     const handleOfferForParticipant = useCallback(async (payload) => {
@@ -216,6 +243,11 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
                 delete newState[userId];
                 return newState;
             });
+            setPeerVolumes(prev => {
+                const newVolumes = { ...prev };
+                delete newVolumes[userId];
+                return newVolumes;
+            });
         };
         
         const manageRoleSpecificListeners = (isNewHost) => {
@@ -254,14 +286,17 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
             manageRoleSpecificListeners(amIHost);
 
             const initialParticipants = {};
+            const initialVolumes = {};
             if (payload.participants) {
                 payload.participants.forEach(p => {
                     if (p.id !== user.id) {
                         initialParticipants[p.id] = { user: p, stream: null, isMuted: false, isSpeaking: false };
+                        initialVolumes[p.id] = 1; // Default volume
                     }
                 });
             }
             setParticipants(initialParticipants);
+            setPeerVolumes(initialVolumes);
         };
 
         const handleMuteStatusChanged = (payload) => {
@@ -313,7 +348,7 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
         sendMessage({ type: 'mute-status-changed', payload: { userId: user.id, isMuted: muted } });
     }, [user?.id, sendMessage]);
 
-    return { participants, cleanupAndResetAll, setLocalAudioMuted, isLocalUserSpeaking };
+    return { participants, cleanupAndResetAll, setLocalAudioMuted, isLocalUserSpeaking, peerVolumes, setPeerVolume, setAudioRef };
 }
 
 

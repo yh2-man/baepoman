@@ -1,18 +1,22 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { useWebRTC } from '../../context/WebRTCContext';
 
-const AudioStream = ({ stream, isMuted }) => {
+const AudioStream = ({ stream, isMuted, userId, setAudioRef }) => {
     const audioRef = useRef(null);
 
+    const refCallback = useCallback(node => {
+        audioRef.current = node;
+        setAudioRef(userId, node); // node will be null on unmount
+    }, [userId, setAudioRef]);
+
     useEffect(() => {
-        if (audioRef.current) {
+        if (audioRef.current && audioRef.current.srcObject !== stream) {
             audioRef.current.srcObject = stream;
         }
     }, [stream]);
 
-    // The `muted` attribute's presence means true. It must be absent for audio to play.
-    // We only add the muted property to the element if isMuted is actually true.
     const audioProps = {
-        ref: audioRef,
+        ref: refCallback,
         autoPlay: true,
         playsInline: true,
     };
@@ -25,7 +29,7 @@ const AudioStream = ({ stream, isMuted }) => {
 };
 
 const GlobalAudioStreams = ({ participants, isGlobalMuted }) => {
-    // participants is an object: { userId: { stream, user, isMuted } }
+    const { setAudioRef } = useWebRTC();
     const streams = Object.entries(participants || {});
 
     return (
@@ -34,15 +38,15 @@ const GlobalAudioStreams = ({ participants, isGlobalMuted }) => {
                 if (!participantInfo || !participantInfo.stream) {
                     return null;
                 }
-                // participantInfo.isMuted is the individual mute status from the sender
-                // isGlobalMuted is the local user's choice to mute all incoming audio
                 const isEffectivelyMuted = isGlobalMuted || participantInfo.isMuted;
 
                 return (
                     <AudioStream
                         key={userId}
+                        userId={userId}
                         stream={participantInfo.stream}
                         isMuted={isEffectivelyMuted}
+                        setAudioRef={setAudioRef}
                     />
                 );
             })}

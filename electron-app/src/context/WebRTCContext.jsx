@@ -15,7 +15,10 @@ const defaultContextValue = {
     setIsGlobalMuted: () => {},
     activateLocalStream: () => {},
     isMicActive: false,
-    isLocalUserSpeaking: false, // Add default value
+    isLocalUserSpeaking: false,
+    peerVolumes: {},
+    setPeerVolume: () => {},
+    setAudioRef: () => {},
 };
 
 const WebRTCContext = createContext(defaultContextValue);
@@ -31,7 +34,15 @@ export function WebRTCProvider({ children }) {
     const [isGlobalMuted, setIsGlobalMuted] = useState(false);
     const [isMicActive, setIsMicActive] = useState(false);
 
-    const { participants, cleanupAndResetAll, setLocalAudioMuted, isLocalUserSpeaking } = useWebRTCManager({
+    const { 
+        participants, 
+        cleanupAndResetAll, 
+        setLocalAudioMuted, 
+        isLocalUserSpeaking,
+        peerVolumes,
+        setPeerVolume,
+        setAudioRef,
+    } = useWebRTCManager({
         user,
         currentRoom,
         localStream,
@@ -98,13 +109,16 @@ export function WebRTCProvider({ children }) {
         leaveRoom,
         fullCleanup,
         localStream,
-        participants, // Use participants instead of remoteStreams
+        participants,
         setLocalAudioMuted,
         isGlobalMuted,
         setIsGlobalMuted,
         activateLocalStream,
         isMicActive,
-        isLocalUserSpeaking, // Expose the value
+        isLocalUserSpeaking,
+        peerVolumes,
+        setPeerVolume,
+        setAudioRef,
     };
 
     return (
