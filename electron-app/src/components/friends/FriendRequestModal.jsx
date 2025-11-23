@@ -41,10 +41,10 @@ const FriendRequestModal = ({ isOpen, onClose }) => {
                 <span className="friend-tag">#{request.tag}</span>
               </div>
               <div className="request-actions">
-                                                                                        <Button onClick={() => acceptFriendRequest(request.id)} backgroundColor="#4CAF50" textColor="white" circular={true}>&#10003;</Button>
+                  <Button onClick={() => acceptFriendRequest(request.id)} backgroundColor="#4CAF50" textColor="white" circular={true}>&#10003;</Button>
                   <Button onClick={() => declineFriendRequest(request.id)} backgroundColor="var(--error-color)" textColor="white" circular={true}>&#10006;</Button>
+              </div>
             </div>
-            </div> // Closes friend-request-item div
           ))}
         </div>
       )}

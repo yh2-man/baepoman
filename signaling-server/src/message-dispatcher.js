@@ -52,6 +52,7 @@ const messageHandlers = {
     'join-room': authenticateToken(handleJoinRoom),
     'leave-room': authenticateToken(handleLeaveRoom),
     'get-categories': authenticateToken(handleGetCategories),
+    'kick-participant': authenticateToken(require('./handlers/room-handlers.js').handleKickParticipant), // New handler
 
     // Chat
     'chat-message': authenticateToken(handleChatMessage),
@@ -85,7 +86,8 @@ function dispatchMessage(ws, message, wss, rooms, userRoomMap) {
             'login', 'signup', 'update-profile', 'verify-email', 'get-user-profile',
             'friend-request', 'get-friends-list', 'accept-friend-request', 'decline-friend-request', 'remove-friend', 'direct-message', 'get-dm-history',
             'get-rooms', 'create-room', 'join-room', 'leave-room', 'chat-message', 'get-chat-history', 'delete-message', 'get-categories',
-            'reauthenticate'
+            'reauthenticate',
+            'kick-participant' // Add kick-participant here
         ];
         
         if (webrtcSignalTypes.includes(data.type)) {
@@ -93,7 +95,7 @@ function dispatchMessage(ws, message, wss, rooms, userRoomMap) {
             handler(ws, data, wss, rooms);
         } else if (payloadExpectedHandlers.includes(data.type)) {
             // Pass only the payload for other handlers
-            if (['join-room', 'leave-room'].includes(data.type)) {
+            if (['join-room', 'leave-room', 'kick-participant'].includes(data.type)) { // Add 'kick-participant' here
                 handler(ws, data.payload, wss, rooms, userRoomMap);
             } else {
                 handler(ws, data.payload, wss, rooms);

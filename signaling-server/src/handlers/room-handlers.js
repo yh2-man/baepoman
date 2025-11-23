@@ -139,11 +139,11 @@ async function handleJoinRoom(ws, payload, wss, rooms, userRoomMap) { // Add use
         }
         
         const dbRoom = dbRoomResult.rows[0];
-        let room = rooms.get(roomId);
+        let room = rooms.get(String(roomId)); // Convert to String for consistency
 
         if (!room) {
             room = new Set();
-            rooms.set(roomId, room);
+            rooms.set(String(roomId), room); // Convert to String for consistency
         }
 
         if (room.size >= dbRoom.maxParticipants) {
@@ -322,6 +322,58 @@ async function handleLeaveRoom(ws, payload, wss, rooms, userRoomMap) { // Add us
         }
     }
     // Note: Clearing ws.roomId and userRoomMap is now handled inside the `if (room)` block.
+}
+
+async function handleKickParticipant(ws, payload, wss, rooms, userRoomMap) {
+    const { roomId, targetParticipantId } = payload;
+    const hostId = ws.userId;
+
+    if (!roomId || !targetParticipantId || !hostId) {
+        return send(ws, 'error', { message: 'Invalid kick request.' });
+    }
+
+    try {
+        // 1. Verify if the sender (hostId) is indeed the host of the room
+        const roomDbResult = await db.query('SELECT host_id FROM rooms WHERE id = $1', [roomId]);
+        if (roomDbResult.rows.length === 0 || roomDbResult.rows[0].host_id !== hostId) {
+            return send(ws, 'error', { message: 'You are not the host of this room.' });
+        }
+
+        // Prevent host from kicking themselves via context menu (should be handled client-side too)
+        if (String(hostId) === String(targetParticipantId)) {
+            return send(ws, 'error', { message: 'You cannot kick yourself.' });
+        }
+
+        // 2. Find the target participant's WebSocket
+        const room = rooms.get(String(roomId));
+        let targetClientWs = null;
+        if (room) {
+            for (const client of room) {
+                if (String(client.userId) === String(targetParticipantId)) {
+                    targetClientWs = client;
+                    break;
+                }
+            }
+        }
+
+        if (!targetClientWs) {
+            return send(ws, 'error', { message: 'Target participant not found in room.' });
+        }
+
+        // 3. Send a kick message to the target participant
+        send(targetClientWs, 'kicked-from-room', { roomId, byHostId: hostId });
+
+        // 4. Formally remove the user from the room using handleLeaveRoom
+        await handleLeaveRoom(targetClientWs, { userId: targetParticipantId, roomId: roomId }, wss, rooms, userRoomMap);
+        
+        send(ws, 'kick-participant-success', { participantId: targetParticipantId }); // Confirm to the host
+
+        console.log(`Host ${hostId} kicked participant ${targetParticipantId} from room ${roomId}. Kick process completed.`);
+
+    } catch (error) {
+        console.error(`Failed to kick participant ${targetParticipantId} from room ${roomId}:`, error);
+        send(ws, 'error', { message: 'Failed to kick participant.' });
+    }
 }
 
 async function handleChatMessage(ws, payload, wss, rooms) {
@@ -534,4 +586,5 @@ module.exports = {
     handleGetCategories,
     handleMuteStatusChanged,
     handleStreamIdMap,
+    handleKickParticipant, // Export the new handler
 };

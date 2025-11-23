@@ -11,10 +11,11 @@ import RoomHeaderCard from '../../components/room/RoomHeaderCard';
 import Button from '../../components/common/Button';
 import ChatPanel from '../../components/room/ChatPanel';
 import ProfileAvatar from '../../components/common/ProfileAvatar'; // Import the new component
+import ParticipantContextMenu from '../../components/room/ParticipantContextMenu'; // Import ParticipantContextMenu
 import './RoomPage.css';
 
 // Updated component to use ProfileAvatar
-const ParticipantMedia = ({ participant }) => {
+const ParticipantMedia = ({ participant, onContextMenu, isCurrentUserHost, currentUserId, roomHostId }) => {
   const { user, isMuted, isSpeaking } = participant;
 
   if (!user) {
@@ -22,7 +23,10 @@ const ParticipantMedia = ({ participant }) => {
   }
 
   return (
-    <div className={`participant-card ${isSpeaking && !isMuted ? 'speaking' : ''}`}>
+    <div 
+      className={`participant-card ${isSpeaking && !isMuted ? 'speaking' : ''}`}
+      onContextMenu={(e) => onContextMenu(e, user.id)} // Add onContextMenu
+    >
       <ProfileAvatar user={user} size="large" isMuted={isMuted} />
       <div className="username-display">{user.username}</div>
     </div>
@@ -32,7 +36,7 @@ const ParticipantMedia = ({ participant }) => {
 const RoomPage = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const { user, currentRoom, loading, sendMessage } = useAuth();
+  const { user, currentRoom, loading, sendMessage, addMessageListener, removeMessageListener } = useAuth();
   const { friends } = useFriends();
   
   const { joinRoom, leaveRoom, participants, setLocalAudioMuted, isGlobalMuted, setIsGlobalMuted, isLocalUserSpeaking } = useWebRTC();
@@ -42,7 +46,46 @@ const RoomPage = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [modalPosition, setModalPosition] = useState({ top: 0, left: 0, bottom: 0 });
+  const [contextMenu, setContextMenu] = useState(null); // State for context menu { x, y, participantId }
+  const contextMenuRef = useRef(null); // Ref for context menu element
   const inviteButtonRef = useRef(null);
+  
+  // New: Handle context menu
+  const handleContextMenu = (event, participantId) => {
+    event.preventDefault(); // Prevent default browser context menu
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      participantId: participantId,
+    });
+  };
+
+  const dismissContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    const handleClickOutside = (event) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target)) {
+        dismissContextMenu();
+      }
+    };
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        dismissContextMenu();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [contextMenu]); // Only re-run if contextMenu state changes
   
   useEffect(() => {
     if (loading) {
@@ -92,6 +135,36 @@ const RoomPage = () => {
     setIsInviteModalOpen(false); // Close modal after sending
   };
 
+  const handleKickParticipant = (participantId) => {
+    console.log(`Kicking participant: ${participantId}`);
+    sendMessage({
+      type: 'kick-participant',
+      payload: {
+        roomId: currentRoom.id,
+        targetParticipantId: participantId,
+      },
+    });
+    dismissContextMenu();
+  };
+  
+  // New: Listener for when the current user is kicked
+  useEffect(() => {
+    const handleKicked = (payload) => {
+      console.log('You have been kicked from the room:', payload);
+      leaveRoom(); // Call leaveRoom from useWebRTC
+      navigate('/lobby'); // Navigate to lobby
+    };
+
+    addMessageListener('kicked-from-room', handleKicked);
+
+    return () => {
+      removeMessageListener('kicked-from-room', handleKicked);
+    };
+  }, [addMessageListener, removeMessageListener, leaveRoom, navigate]); // Add dependencies
+
+  // Check if current user is host
+  const isCurrentUserHost = user?.id === currentRoom?.hostId;
+
   if (!currentRoom) {
     return <div className="room-page-layout">Joining room...</div>;
   }
@@ -106,7 +179,10 @@ const RoomPage = () => {
         <div className="room-main-content">
           <div className="participants-grid">
             {/* Local User */}
-            <div className={`participant-card ${isLocalUserSpeaking && !isMuted ? 'speaking' : ''}`}>
+            <div 
+              className={`participant-card ${isLocalUserSpeaking && !isMuted ? 'speaking' : ''}`}
+              onContextMenu={(e) => handleContextMenu(e, user.id)} // Add onContextMenu
+            >
               <ProfileAvatar user={user} size="large" isMuted={isMuted} />
               <div className="username-display">{user?.username} (Me)</div>
             </div>
@@ -118,6 +194,10 @@ const RoomPage = () => {
                 <ParticipantMedia 
                   key={p.user.id} 
                   participant={p} 
+                  onContextMenu={handleContextMenu} // Pass handler
+                  isCurrentUserHost={isCurrentUserHost} // Pass host status
+                  currentUserId={user?.id} // Pass current user ID
+                  roomHostId={currentRoom?.hostId} // Pass room host ID
                 />
               ))}
           </div>
@@ -146,6 +226,18 @@ const RoomPage = () => {
           onClose={() => setIsInviteModalOpen(false)}
           onInviteFriend={handleSendFriendInvitation}
           position={modalPosition}
+        />
+      )}
+      {contextMenu && (
+        <ParticipantContextMenu
+          ref={contextMenuRef}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={dismissContextMenu}
+          targetParticipantId={contextMenu.participantId}
+          isCurrentUserHost={isCurrentUserHost}
+          onKick={handleKickParticipant}
+          currentUserId={user?.id} // Current user id to prevent self-kick
         />
       )}
     </div>
