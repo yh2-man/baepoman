@@ -27,8 +27,12 @@ const ChatPanel = ({ roomId, messages, onSendMessage, onDeleteMessage }) => {
 
     const renderMessage = (msg) => {
         const isMyMessage = msg.userId === user.id;
-        const profile = profiles[msg.userId];
-        
+        const profile = profiles[msg.userId] || {
+            id: msg.userId,
+            username: msg.username,
+            profile_image_url: msg.profile_image_url
+        };
+
         // If message is soft-deleted, render a placeholder
         if (msg.deletedAt) {
             return (
@@ -45,7 +49,7 @@ const ChatPanel = ({ roomId, messages, onSendMessage, onDeleteMessage }) => {
                 <div key={msg.id} className="chat-message my-message">
                     <div className="message-content">
                         <div className="message-header">
-                             <button onClick={() => onDeleteMessage(msg.id)} className="delete-message-btn">
+                            <button onClick={() => onDeleteMessage(msg.id)} className="delete-message-btn">
                                 삭제
                             </button>
                             <div className="message-avatar">

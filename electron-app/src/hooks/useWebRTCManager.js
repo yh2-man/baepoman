@@ -253,10 +253,12 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
 
         const handlePeerDisconnected = (payload) => {
             const { userId } = payload;
-            if (!userId || !peerConnections.current[userId]) return;
+            if (!userId) return;
 
-            peerConnections.current[userId].close();
-            delete peerConnections.current[userId];
+            if (peerConnections.current[userId]) {
+                peerConnections.current[userId].close();
+                delete peerConnections.current[userId];
+            }
             userTracks.current.delete(userId);
 
             setParticipants(prev => {

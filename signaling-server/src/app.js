@@ -22,4 +22,13 @@ const profileRoutes = require('./routes/profile.js');
 
 app.use('/api', profileRoutes);
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    if (res.headersSent) {
+        return next(err);
+    }
+    res.status(500).json({ message: err.message || 'Internal Server Error' });
+});
+
 module.exports = app;

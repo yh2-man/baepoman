@@ -106,6 +106,22 @@ const AudioSettings = () => {
         <span>{Math.round(speakerVolume * 100)}%</span>
       </div>
 
+      <div className="settings-group">
+        <label htmlFor="bitrate-select">오디오 품질 (Bitrate)</label>
+        <select
+          id="bitrate-select"
+          value={audioBitrate}
+          onChange={(e) => setAudioBitrate(Number(e.target.value))}
+          className="settings-select"
+        >
+          {bitrateOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="settings-group settings-group-toggle">
         <label htmlFor="mic-loopback">내 목소리 듣기</label>
         <label className="switch">
@@ -118,6 +134,21 @@ const AudioSettings = () => {
           <span className="slider round"></span>
         </label>
       </div>
+
+      {/* Hidden audio element for loopback */}
+      {isMicLoopbackEnabled && (
+        <audio
+          ref={(el) => {
+            if (el && useWebRTC().localStream) {
+              el.srcObject = useWebRTC().localStream;
+              el.play().catch(e => console.error("Loopback play error:", e));
+            }
+          }}
+          autoPlay
+          muted={false} // Must be unmuted to hear yourself
+          volume={speakerVolume} // Use speaker volume setting
+        />
+      )}
     </div>
   );
 };

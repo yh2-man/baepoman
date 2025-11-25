@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useWebRTC } from '../../context/WebRTCContext';
@@ -15,7 +16,7 @@ import ParticipantContextMenu from '../../components/room/ParticipantContextMenu
 import './RoomPage.css';
 
 // Updated component to use ProfileAvatar
-const ParticipantMedia = ({ participant, onContextMenu, isCurrentUserHost, currentUserId, roomHostId }) => {
+const ParticipantMedia = ({ participant, onContextMenu }) => {
   const { user, isMuted, isSpeaking } = participant;
 
   if (!user) {
@@ -23,7 +24,7 @@ const ParticipantMedia = ({ participant, onContextMenu, isCurrentUserHost, curre
   }
 
   return (
-    <div 
+    <div
       className={`participant-card ${isSpeaking && !isMuted ? 'speaking' : ''}`}
       onContextMenu={(e) => onContextMenu(e, user.id)} // Add onContextMenu
     >
@@ -33,12 +34,24 @@ const ParticipantMedia = ({ participant, onContextMenu, isCurrentUserHost, curre
   );
 };
 
+ParticipantMedia.propTypes = {
+  participant: PropTypes.shape({
+    user: PropTypes.shape({
+      id: PropTypes.number,
+      username: PropTypes.string,
+    }),
+    isMuted: PropTypes.bool,
+    isSpeaking: PropTypes.bool,
+  }).isRequired,
+  onContextMenu: PropTypes.func.isRequired,
+};
+
 const RoomPage = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const { user, currentRoom, loading, sendMessage, addMessageListener, removeMessageListener } = useAuth();
   const { friends } = useFriends();
-  
+
   const { joinRoom, leaveRoom, participants, setLocalAudioMuted, isGlobalMuted, setIsGlobalMuted, isLocalUserSpeaking } = useWebRTC();
   const { showVoiceSubtitleChat, toggleVoiceSubtitleChat } = useVoiceSubtitle();
   const { chatMessages, handleSendMessage, handleDeleteMessage } = useChat(roomId);
@@ -49,7 +62,7 @@ const RoomPage = () => {
   const [contextMenu, setContextMenu] = useState(null); // State for context menu { x, y, participantId }
   const contextMenuRef = useRef(null); // Ref for context menu element
   const inviteButtonRef = useRef(null);
-  
+
   // New: Handle context menu
   const handleContextMenu = (event, participantId) => {
     event.preventDefault(); // Prevent default browser context menu
@@ -86,7 +99,7 @@ const RoomPage = () => {
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, [contextMenu]); // Only re-run if contextMenu state changes
-  
+
   useEffect(() => {
     if (loading) {
       return;
@@ -146,7 +159,7 @@ const RoomPage = () => {
     });
     dismissContextMenu();
   };
-  
+
   // New: Listener for when the current user is kicked
   useEffect(() => {
     const handleKicked = (payload) => {
@@ -171,15 +184,15 @@ const RoomPage = () => {
 
   return (
     <div className="room-content-wrapper">
-      <RoomHeaderCard 
-        title={currentRoom.name} 
-        onHangUp={handleLeaveRoom} 
+      <RoomHeaderCard
+        title={currentRoom.name}
+        onHangUp={handleLeaveRoom}
       />
       <div className="room-body-layout">
         <div className="room-main-content">
           <div className="participants-grid">
             {/* Local User */}
-            <div 
+            <div
               className={`participant-card ${isLocalUserSpeaking && !isMuted ? 'speaking' : ''}`}
               onContextMenu={(e) => handleContextMenu(e, user.id)} // Add onContextMenu
             >
@@ -191,13 +204,10 @@ const RoomPage = () => {
             {Object.values(participants)
               .filter(p => p.user) // Filter out participants without user info
               .map(p => (
-                <ParticipantMedia 
-                  key={p.user.id} 
-                  participant={p} 
+                <ParticipantMedia
+                  key={p.user.id}
+                  participant={p}
                   onContextMenu={handleContextMenu} // Pass handler
-                  isCurrentUserHost={isCurrentUserHost} // Pass host status
-                  currentUserId={user?.id} // Pass current user ID
-                  roomHostId={currentRoom?.hostId} // Pass room host ID
                 />
               ))}
           </div>
@@ -219,28 +229,32 @@ const RoomPage = () => {
         </div>
         {showVoiceSubtitleChat && <VoiceSubtitleChat />}
       </div>
-      {isInviteModalOpen && (
-        <InviteFriendModal
-          isOpen={isInviteModalOpen}
-          friends={friends}
-          onClose={() => setIsInviteModalOpen(false)}
-          onInviteFriend={handleSendFriendInvitation}
-          position={modalPosition}
-        />
-      )}
-      {contextMenu && (
-        <ParticipantContextMenu
-          ref={contextMenuRef}
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onClose={dismissContextMenu}
-          targetParticipantId={contextMenu.participantId}
-          isCurrentUserHost={isCurrentUserHost}
-          onKick={handleKickParticipant}
-          currentUserId={user?.id} // Current user id to prevent self-kick
-        />
-      )}
-    </div>
+      {
+        isInviteModalOpen && (
+          <InviteFriendModal
+            isOpen={isInviteModalOpen}
+            friends={friends}
+            onClose={() => setIsInviteModalOpen(false)}
+            onInviteFriend={handleSendFriendInvitation}
+            position={modalPosition}
+          />
+        )
+      }
+      {
+        contextMenu && (
+          <ParticipantContextMenu
+            ref={contextMenuRef}
+            x={contextMenu.x}
+            y={contextMenu.y}
+            onClose={dismissContextMenu}
+            targetParticipantId={contextMenu.participantId}
+            isCurrentUserHost={isCurrentUserHost}
+            onKick={handleKickParticipant}
+            currentUserId={user?.id} // Current user id to prevent self-kick
+          />
+        )
+      }
+    </div >
   );
 };
 

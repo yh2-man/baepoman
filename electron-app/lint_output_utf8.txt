@@ -1,0 +1,7 @@
+﻿
+C:\Users\enfrl\OneDrive\Desktop\daehak\just\baepoman\electron-app\src\context\FriendsContext.jsx
+   19:19  error    'isConnected' is assigned a value but never used                                                         no-unused-vars
+  228:8   warning  React Hook useEffect has a missing dependency: 'user'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+??2 problems (1 error, 1 warning)
+

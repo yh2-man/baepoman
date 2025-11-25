@@ -16,6 +16,7 @@ export const AudioSettingsProvider = ({ children }) => {
   const [speakerVolume, setSpeakerVolume] = useState(1); // 0 to 1
 
   const [isMicLoopbackEnabled, setIsMicLoopbackEnabled] = useState(false);
+  const [audioBitrate, setAudioBitrate] = useState(32000);
 
   useEffect(() => {
     const getDevices = async () => {
@@ -63,6 +64,8 @@ export const AudioSettingsProvider = ({ children }) => {
     setSpeakerVolume,
     isMicLoopbackEnabled,
     setIsMicLoopbackEnabled,
+    audioBitrate,
+    setAudioBitrate,
   };
 
   return (

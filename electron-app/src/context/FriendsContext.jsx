@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext'; // Import useAuth
 import PropTypes from 'prop-types';
-import { NOTIFICATION_SOUND_SRC } from '../utils/notificationSound';
+
 
 const FriendsContext = createContext();
 
@@ -16,7 +16,7 @@ export const FriendsProvider = ({ children }) => {
     const [activeConversation, setActiveConversation] = useState(null); // ID of the friend in the active DM
     const [profiles, setProfiles] = useState({}); // Cache for user profiles { userId: profile }
 
-    const { user, isConnected, isSocketAuthenticated, sendMessage, addMessageListener, removeMessageListener } = useAuth();
+    const { user, isSocketAuthenticated, sendMessage, addMessageListener, removeMessageListener } = useAuth();
 
     // Ref to hold the current active conversation to avoid re-running the main effect
     const activeConversationRef = useRef(activeConversation);
@@ -213,8 +213,8 @@ export const FriendsProvider = ({ children }) => {
             const declinedIdNum = Number(declinedUserId);
             setPendingRequests(prev => ({
                 ...prev,
-                incoming: prev.incoming.filter(req => req.id !== declinedIdNum),
-                outgoing: prev.outgoing.filter(req => req.id !== declinedIdNum),
+                incoming: prev.incoming.filter(req => Number(req.id) !== declinedIdNum),
+                outgoing: prev.outgoing.filter(req => Number(req.id) !== declinedIdNum),
             }));
         };
         listeners['friend-decline-success'] = handleFriendRequestDeclined;
@@ -225,7 +225,7 @@ export const FriendsProvider = ({ children }) => {
         return () => {
             Object.entries(listeners).forEach(([type, handler]) => removeMessageListener(type, handler));
         };
-    }, [isSocketAuthenticated, user?.id, sendMessage, addMessageListener, removeMessageListener, updateTaskbarBadge]);
+    }, [isSocketAuthenticated, user, sendMessage, addMessageListener, removeMessageListener, updateTaskbarBadge]);
 
     const sendFriendRequest = useCallback((fullTag) => {
         sendMessage({ type: 'friend-request', payload: { fullTag } });

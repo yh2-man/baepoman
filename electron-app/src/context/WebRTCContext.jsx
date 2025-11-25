@@ -5,20 +5,20 @@ import { useWebRTCManager } from '../hooks/useWebRTCManager';
 import PropTypes from 'prop-types';
 
 const defaultContextValue = {
-    joinRoom: () => {},
-    leaveRoom: () => {},
-    fullCleanup: () => {},
+    joinRoom: () => { },
+    leaveRoom: () => { },
+    fullCleanup: () => { },
     localStream: null,
     participants: {},
-    setLocalAudioMuted: () => {},
+    setLocalAudioMuted: () => { },
     isGlobalMuted: false,
-    setIsGlobalMuted: () => {},
-    activateLocalStream: () => {},
+    setIsGlobalMuted: () => { },
+    activateLocalStream: () => { },
     isMicActive: false,
     isLocalUserSpeaking: false,
     peerVolumes: {},
-    setPeerVolume: () => {},
-    setAudioRef: () => {},
+    setPeerVolume: () => { },
+    setAudioRef: () => { },
 };
 
 const WebRTCContext = createContext(defaultContextValue);
@@ -34,10 +34,10 @@ export function WebRTCProvider({ children }) {
     const [isGlobalMuted, setIsGlobalMuted] = useState(false);
     const [isMicActive, setIsMicActive] = useState(false);
 
-    const { 
-        participants, 
-        cleanupAndResetAll, 
-        setLocalAudioMuted, 
+    const {
+        participants,
+        cleanupAndResetAll,
+        setLocalAudioMuted,
         isLocalUserSpeaking,
         peerVolumes,
         setPeerVolume,
@@ -91,18 +91,19 @@ export function WebRTCProvider({ children }) {
         console.log(`[WebRTCContext] joinRoom called with roomId: ${newRoomId}`);
         if (!user) return;
         if (activeRoomId === newRoomId) return;
-        
+
         // The server will handle moving the user from the old room to the new one.
         // No need to call leaveRoom() on the client, which was causing stream cleanup issues.
 
         try {
+            cleanupAndResetAll(); // Clean up previous room connections
             await activateLocalStream();
             setActiveRoomId(newRoomId);
             sendMessage({ type: 'join-room', payload: { roomId: newRoomId, userId: user.id } });
         } catch (error) {
             console.error('Error joining room:', error);
         }
-    }, [user, activeRoomId, activateLocalStream, sendMessage]);
+    }, [user, activeRoomId, activateLocalStream, sendMessage, cleanupAndResetAll]);
 
     const value = {
         joinRoom,
