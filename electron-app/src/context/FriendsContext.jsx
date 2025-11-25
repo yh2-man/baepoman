@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext'; // Import useAuth
 import PropTypes from 'prop-types';
+import { NOTIFICATION_SOUND_SRC } from '../utils/notificationSound';
 
 const FriendsContext = createContext();
 
@@ -22,6 +23,43 @@ export const FriendsProvider = ({ children }) => {
     useEffect(() => {
         activeConversationRef.current = activeConversation;
     }, [activeConversation]);
+
+    // Helper to update taskbar badge
+    const updateTaskbarBadge = useCallback((unreadCounts) => {
+        const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+
+        if (totalUnread === 0) {
+            if (window.electron && window.electron.setUnreadBadge) {
+                window.electron.setUnreadBadge({ count: 0, dataUrl: null });
+            }
+            return;
+        }
+
+        // Create a canvas to draw the badge
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+
+        // Draw a red circle
+        ctx.fillStyle = 'red';
+        ctx.beginPath();
+        ctx.arc(16, 16, 16, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw the number
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const text = totalUnread > 99 ? '99+' : String(totalUnread);
+        ctx.fillText(text, 16, 16);
+
+        const dataUrl = canvas.toDataURL();
+        if (window.electron && window.electron.setUnreadBadge) {
+            window.electron.setUnreadBadge({ count: totalUnread, dataUrl });
+        }
+    }, []);
 
     // Listen for incoming profile data from the server
     useEffect(() => {
@@ -109,12 +147,22 @@ export const FriendsProvider = ({ children }) => {
                 ...prev,
                 [sender_id]: [...(prev[sender_id] || []), message]
             }));
+
+            // Play sound
+            // To change the sound, replace the file at electron-app/public/sounds/notification.mp3
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.play().catch(e => console.error("Error playing sound:", e));
+
             // Use the ref to get the current value without adding a dependency
             if (sender_id !== activeConversationRef.current) {
-                setUnreadMessages(prev => ({
-                    ...prev,
-                    [sender_id]: (prev[sender_id] || 0) + 1,
-                }));
+                setUnreadMessages(prev => {
+                    const newUnread = {
+                        ...prev,
+                        [sender_id]: (prev[sender_id] || 0) + 1,
+                    };
+                    updateTaskbarBadge(newUnread);
+                    return newUnread;
+                });
             }
         };
 
@@ -162,10 +210,11 @@ export const FriendsProvider = ({ children }) => {
 
         const handleFriendRequestDeclined = (payload) => {
             const { declinedUserId } = payload;
+            const declinedIdNum = Number(declinedUserId);
             setPendingRequests(prev => ({
                 ...prev,
-                incoming: prev.incoming.filter(req => req.id !== declinedUserId),
-                outgoing: prev.outgoing.filter(req => req.id !== declinedUserId),
+                incoming: prev.incoming.filter(req => req.id !== declinedIdNum),
+                outgoing: prev.outgoing.filter(req => req.id !== declinedIdNum),
             }));
         };
         listeners['friend-decline-success'] = handleFriendRequestDeclined;
@@ -176,7 +225,7 @@ export const FriendsProvider = ({ children }) => {
         return () => {
             Object.entries(listeners).forEach(([type, handler]) => removeMessageListener(type, handler));
         };
-    }, [isSocketAuthenticated, user?.id, sendMessage, addMessageListener, removeMessageListener]); // Remove handleUserProfileUpdated from dependencies
+    }, [isSocketAuthenticated, user?.id, sendMessage, addMessageListener, removeMessageListener, updateTaskbarBadge]);
 
     const sendFriendRequest = useCallback((fullTag) => {
         sendMessage({ type: 'friend-request', payload: { fullTag } });
@@ -200,9 +249,13 @@ export const FriendsProvider = ({ children }) => {
 
     const markMessagesAsRead = useCallback((friendId) => {
         if (unreadMessages[friendId] > 0) {
-            setUnreadMessages(prev => ({ ...prev, [friendId]: 0 }));
+            setUnreadMessages(prev => {
+                const newUnread = { ...prev, [friendId]: 0 };
+                updateTaskbarBadge(newUnread);
+                return newUnread;
+            });
         }
-    }, [unreadMessages]);
+    }, [unreadMessages, updateTaskbarBadge]);
 
     const value = {
         friends,

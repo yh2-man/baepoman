@@ -13,7 +13,8 @@ const ProfileAvatar = ({ user, className = '', size = 'medium', isMuted = false 
     if (user.profile_image_url.startsWith('data:')) {
       avatarUrl = user.profile_image_url;
     } else {
-      avatarUrl = `http://localhost:3001${user.profile_image_url}`;
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      avatarUrl = `${apiUrl}${user.profile_image_url}`;
     }
   }
 

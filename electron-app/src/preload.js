@@ -14,4 +14,6 @@ contextBridge.exposeInMainWorld('electron', {
       return ipcRenderer.invoke('electron-store-delete', key);
     },
   },
+  // Taskbar Badge
+  setUnreadBadge: (count, dataUrl) => ipcRenderer.send('set-unread-badge', { count, dataUrl }),
 });

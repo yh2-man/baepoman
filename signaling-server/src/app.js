@@ -18,8 +18,8 @@ app.use(express.json());
 // Serve profile images statically
 app.use('/uploads/profiles', express.static(uploadsDir));
 
-// --- HTTP Routes ---
 const profileRoutes = require('./routes/profile.js');
+
 app.use('/api', profileRoutes);
 
 module.exports = app;

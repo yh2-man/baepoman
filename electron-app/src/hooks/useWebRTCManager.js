@@ -4,8 +4,29 @@ import useVoiceActivity from './useVoiceActivity';
 
 const ICE_SERVERS = {
     iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
+        {
+            urls: "stun:stun.relay.metered.ca:80",
+        },
+        {
+            urls: "turn:standard.relay.metered.ca:80",
+            username: "dc4fe6125e68aeb74c1f3ad8",
+            credential: "arAWC4/g1XAWIARy",
+        },
+        {
+            urls: "turn:standard.relay.metered.ca:80?transport=tcp",
+            username: "dc4fe6125e68aeb74c1f3ad8",
+            credential: "arAWC4/g1XAWIARy",
+        },
+        {
+            urls: "turn:standard.relay.metered.ca:443",
+            username: "dc4fe6125e68aeb74c1f3ad8",
+            credential: "arAWC4/g1XAWIARy",
+        },
+        {
+            urls: "turns:standard.relay.metered.ca:443?transport=tcp",
+            username: "dc4fe6125e68aeb74c1f3ad8",
+            credential: "arAWC4/g1XAWIARy",
+        },
     ],
 };
 
@@ -15,7 +36,7 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
     const isHostRef = useRef(false);
     const userTracks = useRef(new Map());
     const streamIdToUserIdMapping = useRef({});
-    
+
     const [peerVolumes, setPeerVolumes] = useState({});
     const audioElements = useRef({});
 
@@ -87,7 +108,7 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
         if (type === 'speaking_status') {
             const speakingUserId = payload.userId || fallbackId;
             const { isSpeaking } = payload;
-            
+
             setParticipants(prev => {
                 if (!prev[speakingUserId] || prev[speakingUserId].isSpeaking === isSpeaking) return prev;
                 return {
@@ -155,14 +176,14 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
             const remoteTrack = event.track;
             const remoteStream = event.streams[0];
             console.log(`Host: Received track from new peer ${remoteUser.id}`);
-            
+
             userTracks.current.set(remoteUser.id, { track: remoteTrack, stream: remoteStream });
 
             Object.entries(peerConnections.current).forEach(([peerId, peerConn]) => {
                 if (String(peerId) !== String(remoteUser.id)) {
                     console.log(`Host: Relaying track from ${remoteUser.id} to ${peerId}.`);
                     const mapUpdate = { [remoteStream.id]: remoteUser.id };
-                     sendMessage({
+                    sendMessage({
                         type: 'stream-id-map',
                         payload: { targetUserId: peerId, ...mapUpdate },
                     });
@@ -249,7 +270,7 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
                 return newVolumes;
             });
         };
-        
+
         const manageRoleSpecificListeners = (isNewHost) => {
             removeMessageListener('user-joined', handleNewPeerForHost);
             removeMessageListener('offer', handleOfferForParticipant);
@@ -272,7 +293,7 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
                 console.log(`[Host Change] New host is ${newHostId}. Disconnecting from old peer.`);
                 cleanupPeerConnections();
             }
-            
+
             setCurrentRoom(prev => (prev ? { ...prev, hostId: newHostId } : null));
             manageRoleSpecificListeners(amINewHost);
         };
@@ -335,7 +356,7 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
             removeMessageListener('host-changed', handleHostChanged);
             removeMessageListener('room-info', handleRoomInfo);
             removeMessageListener('mute-status-changed', handleMuteStatusChanged);
-            
+
             removeMessageListener('user-joined', handleNewPeerForHost);
             removeMessageListener('offer', handleOfferForParticipant);
             removeMessageListener('user-joined', handleNewPeerForParticipant);
@@ -350,6 +371,3 @@ export function useWebRTCManager({ user, currentRoom, localStream, sendMessage, 
 
     return { participants, cleanupAndResetAll, setLocalAudioMuted, isLocalUserSpeaking, peerVolumes, setPeerVolume, setAudioRef };
 }
-
-
-    

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, session, systemPreferences } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'child_process';
@@ -16,9 +16,10 @@ if (electronSquirrelStartup) {
 }
 
 let signalingServerProcess;
+let mainWindow;
 
 const createWindow = () => {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 950,
     height: 600,
     minWidth: 950,
@@ -45,13 +46,46 @@ function setupStoreHandlers() {
   ipcMain.handle('electron-store-delete', async (event, key) => {
     store.delete(key);
   });
+
+  ipcMain.on('set-unread-badge', (event, payload) => {
+    if (!mainWindow) return;
+
+    const { count, dataUrl } = payload || {};
+
+    if (count > 0 && dataUrl) {
+      const img = nativeImage.createFromDataURL(dataUrl);
+      mainWindow.setOverlayIcon(img, String(count));
+      mainWindow.flashFrame(true);
+    } else {
+      mainWindow.setOverlayIcon(null, '');
+      mainWindow.flashFrame(false);
+    }
+  });
 }
 
 app.whenReady().then(() => {
   // Set up IPC handlers before creating the window
   setupStoreHandlers();
 
-  /*
+  // Explicitly handle permission requests
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    const allowedPermissions = ['media', 'audioCapture', 'videoCapture']; // Add other permissions if needed
+    if (allowedPermissions.includes(permission)) {
+      callback(true); // Approve permission request
+    } else {
+      callback(false); // Deny others
+    }
+  });
+
+  // Also handle permission checks (optional but good for some versions)
+  session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+    const allowedPermissions = ['media', 'audioCapture', 'videoCapture'];
+    if (allowedPermissions.includes(permission)) {
+      return true;
+    }
+    return false;
+  });
+
   const serverPath = path.join(__dirname, '..', '..', 'signaling-server');
   signalingServerProcess = spawn('node', ['index.js'], {
     cwd: serverPath,
@@ -67,7 +101,6 @@ app.whenReady().then(() => {
   signalingServerProcess.on('close', (code) => {
     console.log(`Signaling Server exited with code ${code}`);
   });
-  */
 
   createWindow();
 
@@ -76,6 +109,17 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+
+  // Check and log media access status
+  const micStatus = systemPreferences.getMediaAccessStatus('microphone');
+  console.log('Current Microphone Access Status:', micStatus);
+
+  // For macOS, but harmless on Windows
+  if (micStatus === 'not-determined') {
+    systemPreferences.askForMediaAccess('microphone').then((access) => {
+      console.log('Microphone access requested. Result:', access);
+    });
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -84,11 +128,9 @@ app.on('window-all-closed', () => {
   }
 });
 
-/*
 app.on('will-quit', () => {
   if (signalingServerProcess) {
     console.log('Stopping signaling server...');
     signalingServerProcess.kill();
   }
 });
-*/

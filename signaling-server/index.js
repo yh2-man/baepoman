@@ -19,6 +19,9 @@ async function startServer() {
         // 3. Start WebSocket Server and attach it to the HTTP server
         webSocketServer.start(server);
 
+        // Make wss accessible to routes
+        app.set('wss', webSocketServer.wss);
+
         // 4. Start Listening
         server.listen(PORT, () => {
             console.log(`HTTP and Signaling server running on port ${PORT}.`);
